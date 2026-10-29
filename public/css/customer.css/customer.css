@@ -217,3 +217,68 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 16px;
+    background: #f0f2e9;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 35px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px #26302012;
+}
+
+.auth-card h1 {
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+
+.auth-card > p {
+    color: #73786f;
+    margin-bottom: 22px;
+    line-height: 1.5;
+}
+
+.auth-card label {
+    display: block;
+    margin: 16px 0 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d8dcd3;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.auth-card input:focus {
+    outline: 2px solid #efb943;
+    border-color: transparent;
+}
+
+.auth-card button {
+    width: 100%;
+    margin-top: 24px;
+}
+
+.auth-switch {
+    margin-top: 22px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.auth-switch a {
+    color: #a87510;
+    font-weight: bold;
+}

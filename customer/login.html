@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login | RideNow</title>
+    <link rel="stylesheet" href="../public/css/customer.css">
+</head>
+<body>
+    <main class="auth-container">
+        <form id="loginForm" class="auth-card">
+            <a href="index.html" class="logo">RideNow<span>.</span></a>
+            <h1>Welcome back</h1>
+            <p>Log in to book your next ride.</p>
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email"
+                   placeholder="you@example.com" required>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password"
+                   placeholder="Enter your password" required>
+            <button type="submit" class="primary-btn">Log in</button>
+            <p id="loginMessage" role="status"></p>
+
+            <p class="auth-switch">
+                New to RideNow?
+                <a href="register.html">Create an account</a>
+            </p>
+        </form>
+    </main>
+    <script src="../public/js/customer-auth.js"></script>
+</body>
+</html>

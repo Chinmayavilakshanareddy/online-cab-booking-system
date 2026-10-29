@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Registration | RideNow</title>
+    <link rel="stylesheet" href="../public/css/customer.css">
+</head>
+<body>
+    <main class="auth-container">
+        <form id="registerForm" class="auth-card">
+            <a href="index.html" class="logo">RideNow<span>.</span></a>
+            <h1>Create account</h1>
+            <p>Join RideNow to book your cab.</p>
+            <label for="name">Full name</label>
+            <input type="text" id="name" name="name"
+                   placeholder="Enter your full name" required>
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email"
+                   placeholder="you@example.com" required>
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" name="phone"
+                   placeholder="Enter your phone number"
+                   pattern="[0-9]{10}" maxlength="10" required>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password"
+                   minlength="8" placeholder="At least 8 characters" required>
+            <button type="submit" class="primary-btn">Create account</button>
+            <p id="registerMessage" role="status"></p>
+            <p class="auth-switch">
+                Already registered?
+                <a href="login.html">Log in</a>
+            </p>
+        </form>
+    </main>
+
+    <script src="../public/js/customer-auth.js"></script>
+</body>
+</html>
