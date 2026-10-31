@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Drivers | RideNow Admin</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item active">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Driver Partner Management</h1>
+                <p>Approve new driver applications, view ratings, and monitor fleet partners.</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>All Registered Drivers</h2>
+                        <p>Approved partners and applications under review.</p>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Driver Name</th>
+                                    <th>License Number</th>
+                                    <th>Rating</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Ramesh Gowda</strong><br><small class="driver-sub">ramesh@driver.com</small></td>
+                                    <td>KA01-2022001122</td>
+                                    <td>★ 4.90</td>
+                                    <td><span class="badge-pill badge-success">Approved</span></td>
+                                    <td><button class="btn-table-action btn-reject">Suspend</button></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sunil Shetty</strong><br><small class="driver-sub">sunil@driver.com</small></td>
+                                    <td>KA03-2021005544</td>
+                                    <td>★ 4.80</td>
+                                    <td><span class="badge-pill badge-success">Approved</span></td>
+                                    <td><button class="btn-table-action btn-reject">Suspend</button></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mohammed Zayd</strong><br><small class="driver-sub">zayd@driver.com</small></td>
+                                    <td>KA05-2023009988</td>
+                                    <td>★ 4.70</td>
+                                    <td><span class="badge-pill badge-success">Approved</span></td>
+                                    <td><button class="btn-table-action btn-reject">Suspend</button></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kavita Reddy</strong><br><small class="driver-sub">kavita@driver.com</small></td>
+                                    <td>KA02-2024003311</td>
+                                    <td>★ 5.00</td>
+                                    <td><span class="badge-pill badge-warning">Pending</span></td>
+                                    <td><a href="admin-dashboard.html" class="btn-table-action btn-approve">Review on Dashboard</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
+

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Trips & Bookings | RideNow Admin</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item active">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Trip & Booking Management</h1>
+                <p>Monitor live rides, audit completed trips, and inspect fares.</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>All Trips</h2>
+                        <p>Complete trip logs with passenger, driver, distance, and payment status.</p>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Trip ID</th>
+                                    <th>Passenger</th>
+                                    <th>Driver</th>
+                                    <th>Route</th>
+                                    <th>Distance</th>
+                                    <th>Fare</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>#1</strong></td>
+                                    <td>Priya Sharma</td>
+                                    <td>Ramesh Gowda</td>
+                                    <td>Indiranagar 100ft Rd → MG Road Metro</td>
+                                    <td>8.5 km</td>
+                                    <td>₹215.00</td>
+                                    <td><span class="badge-pill badge-success">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#2</strong></td>
+                                    <td>Rahul Verma</td>
+                                    <td>Sunil Shetty</td>
+                                    <td>Koramangala 5th Block → Bangalore Airport (BLR)</td>
+                                    <td>42.0 km</td>
+                                    <td>₹980.00</td>
+                                    <td><span class="badge-pill badge-success">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#3</strong></td>
+                                    <td>Sneha Patel</td>
+                                    <td>Mohammed Zayd</td>
+                                    <td>HSR Layout Sector 2 → Bellandur Ecospace</td>
+                                    <td>6.2 km</td>
+                                    <td>₹160.00</td>
+                                    <td><span class="badge-pill badge-info">In Progress</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#4</strong></td>
+                                    <td>Amit Kumar</td>
+                                    <td>Ramesh Gowda</td>
+                                    <td>Whitefield Main Rd → Phoenix Marketcity</td>
+                                    <td>-</td>
+                                    <td>₹35.00</td>
+                                    <td><span class="badge-pill badge-danger">Cancelled</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
+

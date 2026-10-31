@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | RideNow Online Cab Booking System</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+
+            <a href="admin-dashboard.html" class="nav-item active">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+
+            <a href="manage-drivers.html" class="nav-item">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+                <span class="nav-badge" id="sidebarPendingBadge" style="display: none;">0</span>
+            </a>
+
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminAvatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Log out">🚪</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT WRAPPER ================= -->
+    <main class="admin-main">
+        <!-- Top App Bar -->
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Admin Operations Dashboard</h1>
+                <p>Real-time passenger, fleet, booking, and revenue monitoring.</p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Live Operations</span>
+                </div>
+                <button id="refreshBtn" class="btn-secondary">
+                    <span>⟳</span> Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard View Container -->
+        <div class="admin-container">
+
+            <!-- 1. KEY METRIC STAT CARDS -->
+            <section class="stats-grid">
+                <!-- Passengers Card -->
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Passengers</span>
+                        <div class="stat-icon">👥</div>
+                    </div>
+                    <div class="stat-value" id="statPassengers">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success">Active</span>
+                        <span>Registered customers</span>
+                    </div>
+                </article>
+
+                <!-- Drivers Card -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Registered Drivers</span>
+                        <div class="stat-icon">🚖</div>
+                    </div>
+                    <div class="stat-value" id="statDrivers">0</div>
+                    <div class="stat-meta" id="statDriversApprovedMeta">
+                        <span>Loading driver breakdown...</span>
+                    </div>
+                </article>
+
+                <!-- Pending Approvals Alert Card -->
+                <article class="stat-card alert-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Pending Driver Approvals</span>
+                        <div class="stat-icon">⏳</div>
+                    </div>
+                    <div class="stat-value" id="statPendingCount">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-warning" id="statPendingBadge">0 Pending</span>
+                        <span>Requires verification</span>
+                    </div>
+                </article>
+
+                <!-- Trips & Bookings Card -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Bookings & Trips</span>
+                        <div class="stat-icon">🗺️</div>
+                    </div>
+                    <div class="stat-value" id="statTotalTrips">0</div>
+                    <div class="stat-meta">
+                        <span>Total Requests: <strong id="statTotalBookings">0</strong></span>
+                    </div>
+                </article>
+
+                <!-- Active Fleet Card -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Fleet (Vehicles)</span>
+                        <div class="stat-icon">🚗</div>
+                    </div>
+                    <div class="stat-value" id="statTotalVehicles">0 / 0</div>
+                    <div class="stat-meta">
+                        <span>Active / Registered Vehicles</span>
+                    </div>
+                </article>
+
+                <!-- Total Revenue Card -->
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Gross Revenue</span>
+                        <div class="stat-icon">💰</div>
+                    </div>
+                    <div class="stat-value" id="statTotalRevenue">₹0.00</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success">Completed</span>
+                        <span>Processed payments</span>
+                    </div>
+                </article>
+            </section>
+
+            <!-- 2. TWO-COLUMN SPLIT: PENDING APPROVALS & TRIP STATUS -->
+            <div class="dashboard-grid">
+                
+                <!-- Pending Approvals Review Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Pending Driver Approvals</h2>
+                            <p>Verify driver licenses, vehicle details, and activate eligible partners.</p>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Driver Info</th>
+                                        <th>License No.</th>
+                                        <th>Vehicle Assigned</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingDriversTableBody">
+                                    <tr>
+                                        <td colspan="5" class="empty-state">
+                                            <span class="loading-spinner"></span> Loading pending driver applications...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trips & Booking Statistics Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Trip & Booking Breakdown</h2>
+                            <p>Live status distribution of cab rides.</p>
+                        </div>
+                    </div>
+                    <div class="card-body trips-summary-card">
+                        
+                        <!-- Active / In-Progress -->
+                        <div class="progress-group">
+                            <div class="progress-meta">
+                                <span>Active Rides (In Progress)</span>
+                                <span id="pctActive">0 (0%)</span>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill fill-active" id="barActive" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Completed -->
+                        <div class="progress-group">
+                            <div class="progress-meta">
+                                <span>Completed Rides</span>
+                                <span id="pctCompleted">0 (0%)</span>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill fill-completed" id="barCompleted" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Cancelled -->
+                        <div class="progress-group">
+                            <div class="progress-meta">
+                                <span>Cancelled Rides</span>
+                                <span id="pctCancelled">0 (0%)</span>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill fill-cancelled" id="barCancelled" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>Active Trips: <strong id="statActiveTrips">0</strong></span>
+                            <span>Completed: <strong id="statCompletedTrips">0</strong></span>
+                            <span>Cancelled: <strong id="statCancelledTrips">0</strong></span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 3. RECENT TRIPS & LIVE AUDIT ACTIVITY -->
+            <div class="dashboard-grid">
+                
+                <!-- Recent Trips Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Recent Trips & Bookings</h2>
+                            <p>Latest passenger bookings across active service areas.</p>
+                        </div>
+                        <a href="manage-trips.html" class="btn-secondary" style="font-size: 12px; padding: 6px 12px;">
+                            View All Trips →
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Trip #</th>
+                                        <th>Passenger / Driver</th>
+                                        <th>Route</th>
+                                        <th>Fare</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentTripsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="empty-state">
+                                            <span class="loading-spinner"></span> Loading recent trips...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Logs / Activity Feed -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Recent Activity Logs</h2>
+                            <p>Real-time audit log of admin and user actions.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="activity-feed" id="activityList">
+                            <li class="empty-state">Loading system activities...</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toastContainer"></div>
+
+    <script src="../public/js/admin-dashboard.js"></script>
+</body>
+</html>
+
