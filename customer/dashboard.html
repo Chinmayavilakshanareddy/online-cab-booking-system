@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RideNow | Customer Dashboard</title>
+
+    <link rel="stylesheet" href="../public/css/customer.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>RideNow</h1>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="dashboard.html#book-ride">Book Ride</a>
+            <a href="dashboard.html#my-rides">My Rides</a>
+            <button id="logoutButton" type="button">Logout</button>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2 id="welcomeMessage">Welcome!</h2>
+            <p>You are logged in to your RideNow customer account.</p>
+        </section>
+
+        <section>
+            <h3>My Profile</h3>
+
+            <p>
+                <strong>Name:</strong>
+                <span id="customerName">Loading...</span>
+            </p>
+
+            <p>
+                <strong>Email:</strong>
+                <span id="customerEmail">Loading...</span>
+            </p>
+
+            <p>
+                <strong>Customer ID:</strong>
+                <span id="customerId">Loading...</span>
+            </p>
+        </section>
+
+        <section id="book-ride">
+            <h3>Book a Ride</h3>
+            <p>Book your next journey with RideNow.</p>
+
+            <button type="button" disabled>
+                Booking feature coming next
+            </button>
+        </section>
+
+        <section id="my-rides">
+            <h3>My Rides</h3>
+            <p>Your ride history will appear here.</p>
+        </section>
+
+        <section id="profile">
+            <h3>Account Information</h3>
+            <p>Your customer account is active.</p>
+        </section>
+    </main>
+
+    <script src="../public/js/customer-dashboard.js"></script>
+
+</body>
+</html>

@@ -5,6 +5,8 @@ backend/node_modules/
 # Environment variables and secrets
 .env
 .env.*
+backend/.env
+**/.env
 !.env.example
 
 # Logs
