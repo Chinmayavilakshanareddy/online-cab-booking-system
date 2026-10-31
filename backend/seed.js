@@ -51,12 +51,20 @@ async function seed() {
             ["Rahul Verma", "rahul@example.com", userPw, "9876543211", "passenger", "active"],
             ["Sneha Patel", "sneha@example.com", userPw, "9876543212", "passenger", "active"],
             ["Amit Kumar", "amit@example.com", userPw, "9876543213", "passenger", "active"],
+            ["Vikram Malhotra", "vikram@example.com", userPw, "9876543214", "passenger", "active"],
+            ["Ananya Iyer", "ananya@example.com", userPw, "9876543215", "passenger", "blocked"],
+            ["Rohan Mehta", "rohan@example.com", userPw, "9876543216", "passenger", "active"],
+            ["Deepika Rao", "deepika@example.com", userPw, "9876543217", "passenger", "active"],
+            ["Karthik Subramanian", "karthik@example.com", userPw, "9876543218", "passenger", "active"],
+            ["Neha Joshi", "neha@example.com", userPw, "9876543219", "passenger", "blocked"],
             // Drivers
             ["Ramesh Gowda", "ramesh@driver.com", userPw, "9880011221", "driver", "active"],
             ["Sunil Shetty", "sunil@driver.com", userPw, "9880011222", "driver", "active"],
             ["Mohammed Zayd", "zayd@driver.com", userPw, "9880011223", "driver", "active"],
             ["Kavita Reddy", "kavita@driver.com", userPw, "9880011224", "driver", "pending"], // Pending driver
-            ["Vikram Rathore", "vikram@driver.com", userPw, "9880011225", "driver", "pending"] // Pending driver
+            ["Vikram Rathore", "vikram@driver.com", userPw, "9880011225", "driver", "pending"], // Pending driver
+            ["Deepak Verma", "deepak@driver.com", userPw, "9880011226", "driver", "active"], // Rejected driver
+            ["Suresh Nair", "suresh@driver.com", userPw, "9880011227", "driver", "blocked"] // Blocked driver
         ];
 
         const userIds = {};
@@ -87,7 +95,13 @@ async function seed() {
             [userIds["priya@example.com"], "Indiranagar, Bangalore", "9876500001"],
             [userIds["rahul@example.com"], "Koramangala, Bangalore", "9876500002"],
             [userIds["sneha@example.com"], "HSR Layout, Bangalore", "9876500003"],
-            [userIds["amit@example.com"], "Whitefield, Bangalore", "9876500004"]
+            [userIds["amit@example.com"], "Whitefield, Bangalore", "9876500004"],
+            [userIds["vikram@example.com"], "Jayanagar, Bangalore", "9876500005"],
+            [userIds["ananya@example.com"], "Malleshwaram, Bangalore", "9876500006"],
+            [userIds["rohan@example.com"], "Electronic City, Bangalore", "9876500007"],
+            [userIds["deepika@example.com"], "BTM Layout, Bangalore", "9876500008"],
+            [userIds["karthik@example.com"], "Marathahalli, Bangalore", "9876500009"],
+            [userIds["neha@example.com"], "Hebbal, Bangalore", "9876500010"]
         ];
         const passengerIds = {};
         for (const [uid, addr, contact] of passengerProfiles) {
@@ -104,7 +118,9 @@ async function seed() {
             [userIds["sunil@driver.com"], "KA03-2021005544", "2028-11-20", "approved", 4.8],
             [userIds["zayd@driver.com"], "KA05-2023009988", "2030-01-15", "approved", 4.7],
             [userIds["kavita@driver.com"], "KA02-2024003311", "2031-08-30", "pending", 5.0],
-            [userIds["vikram@driver.com"], "KA04-2024007766", "2032-03-25", "pending", 5.0]
+            [userIds["vikram@driver.com"], "KA04-2024007766", "2032-03-25", "pending", 5.0],
+            [userIds["deepak@driver.com"], "KA06-2023004455", "2027-12-10", "rejected", 4.2],
+            [userIds["suresh@driver.com"], "KA07-2020008899", "2025-06-15", "suspended", 3.8]
         ];
         const driverIds = {};
         for (const [uid, lic, exp, status, rating] of driverProfiles) {
@@ -122,7 +138,9 @@ async function seed() {
             [driverIds[userIds["sunil@driver.com"]], "KA-03-AB-5678", "SUV", "Toyota Innova", 6, "active"],
             [driverIds[userIds["zayd@driver.com"]], "KA-05-CD-9012", "Hatchback", "Maruti Swift", 4, "active"],
             [driverIds[userIds["kavita@driver.com"]], "KA-02-EF-3456", "Sedan", "Hyundai Verna", 4, "inactive"],
-            [driverIds[userIds["vikram@driver.com"]], "KA-04-GH-7890", "Auto", "Bajaj RE Compact", 3, "inactive"]
+            [driverIds[userIds["vikram@driver.com"]], "KA-04-GH-7890", "Auto", "Bajaj RE Compact", 3, "inactive"],
+            [driverIds[userIds["deepak@driver.com"]], "KA-06-KL-2345", "Sedan", "Tata Tigor", 4, "inactive"],
+            [driverIds[userIds["suresh@driver.com"]], "KA-07-MN-6789", "SUV", "Mahindra XUV500", 6, "inactive"]
         ];
         const vehicleIds = [];
         for (const [did, vnum, vtype, model, cap, status] of vehiclesData) {
