@@ -111,23 +111,60 @@ function serveStaticFile(req, res, pathname) {
     });
 }
 
-const server = http.createServer(async (req, res) => {
-    const origin = req.headers.origin || "*";
-    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+// Frontend origins allowed to communicate with the backend
+const allowedOrigins = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500"
+];
 
-    // Set CORS headers
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
+// Create HTTP server
+const server = http.createServer(async (req, res) => {
+
+    const origin = req.headers.origin;
+
+    const clientIp =
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress ||
+        "127.0.0.1";
+
+    // Reject browser requests from untrusted origins
+    if (origin && !allowedOrigins.includes(origin)) {
+        return sendJson(res, 403, {
+            success: false,
+            message: "Origin not allowed"
+        });
+    }
+
+    // CORS configuration
+    if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
+
+    res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    );
+
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+    );
+
     res.setHeader("Vary", "Origin");
 
+    // Handle browser preflight requests
     if (req.method === "OPTIONS") {
         res.writeHead(204);
         return res.end();
     }
 
-    const parsedUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+    // Parse request URL
+    const parsedUrl = new URL(
+        req.url,
+        `http://${req.headers.host || "localhost"}`
+    );
+
     const pathname = parsedUrl.pathname;
 
     try {
