@@ -973,6 +973,17 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
+server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+        console.error(`\n[ERROR] Port ${PORT} is already in use by another running process.`);
+        console.error(`The server is already running and active at http://localhost:${PORT}`);
+        console.error(`To restart, close the running terminal or run: npx kill-port ${PORT}\n`);
+        process.exit(1);
+    } else {
+        console.error("Server error:", err);
+    }
+});
+
 server.listen(PORT, () => {
     console.log(`RideNow server running at http://localhost:${PORT}`);
 });

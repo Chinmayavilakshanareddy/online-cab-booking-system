@@ -1,0 +1,10 @@
+{
+  "name": "online-cab-booking",
+  "version": "1.0.0",
+  "description": "Online Cab Booking System - RideNow",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node backend/db-test.js",
+    "seed": "node backend/seed.js"
+  }
+}
