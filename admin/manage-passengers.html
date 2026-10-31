@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Passengers | RideNow Admin</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item active">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <!-- Top Navigation Bar -->
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Passenger Management</h1>
+                <p>View registered riders, monitor account status, filter records, and manage access privileges.</p>
+            </div>
+            <div class="topbar-actions">
+                <button class="btn-secondary" id="refreshBtn" title="Refresh passenger records">
+                    <span>🔄</span> Refresh Data
+                </button>
+                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- Summary KPI Metric Cards -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Passengers</span>
+                        <div class="stat-icon-wrap icon-primary">👥</div>
+                    </div>
+                    <div class="stat-value" id="statTotalPassengers">-</div>
+                    <div class="stat-meta">Registered rider accounts in MySQL</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Passengers</span>
+                        <div class="stat-icon-wrap icon-success">✅</div>
+                    </div>
+                    <div class="stat-value" id="statActivePassengers">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-success">Good standing</span> Authorized to book rides</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Blocked Passengers</span>
+                        <div class="stat-icon-wrap icon-danger">🚫</div>
+                    </div>
+                    <div class="stat-value" id="statBlockedPassengers">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-danger">Restricted</span> Access temporarily suspended</div>
+                </div>
+            </section>
+
+            <!-- Main Data Table Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2 id="passengersTableHeading">All Registered Passengers</h2>
+                        <p id="passengersSubtitle">Showing passengers registered on the RideNow platform.</p>
+                    </div>
+                </div>
+
+                <!-- Search and Filters Bar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input 
+                                type="search" 
+                                id="searchInput" 
+                                class="input-control" 
+                                placeholder="Search by name, email, or phone..." 
+                                aria-label="Search passengers by name, email, or phone"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <select id="statusFilter" class="select-control" aria-label="Filter by account status">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active Accounts</option>
+                            <option value="blocked">Blocked Accounts</option>
+                            <option value="inactive">Inactive Accounts</option>
+                            <option value="pending">Pending Accounts</option>
+                        </select>
+
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset all filters">
+                            <span>✕</span> Reset
+                        </button>
+                    </div>
+
+                    <div class="table-toolbar-right">
+                        <select id="limitFilter" class="select-control" aria-label="Items per page">
+                            <option value="5">5 per page</option>
+                            <option value="10" selected>10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="card-body p-0">
+                    <div 
+                        tabindex="0" 
+                        role="region" 
+                        aria-labelledby="passengersTableHeading" 
+                        class="table-responsive"
+                    >
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 70px;">ID</th>
+                                    <th scope="col">Passenger Name</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Phone</th>
+                                    <th scope="col">Account Status</th>
+                                    <th scope="col">Registration Date</th>
+                                    <th scope="col" style="text-align: center; width: 140px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passengersList">
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <span class="loading-spinner"></span> Loading passenger records from database...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="table-pagination" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 passengers</div>
+                    <div class="pagination-controls" id="paginationControls">
+                        <!-- Dynamically populated buttons -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <!-- Client-side Vanilla JavaScript -->
+    <script src="../public/js/manage-passengers.js"></script>
+</body>
+</html>

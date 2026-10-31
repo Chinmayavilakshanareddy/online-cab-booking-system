@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Drivers | RideNow Admin</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item active">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+                <span class="nav-badge" id="sidebarPendingBadge" style="display: none;">0</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <!-- Top Navigation Bar -->
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Driver Partner Management</h1>
+                <p>Monitor driver applications, verify commercial licences, inspect linked vehicles, and manage account statuses.</p>
+            </div>
+            <div class="topbar-actions">
+                <button class="btn-secondary" id="refreshBtn" title="Refresh driver records">
+                    <span>🔄</span> Refresh Data
+                </button>
+                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- Summary KPI Metric Cards -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Drivers</span>
+                        <div class="stat-icon-wrap icon-primary">🚖</div>
+                    </div>
+                    <div class="stat-value" id="statTotalDrivers">-</div>
+                    <div class="stat-meta">Total registered partner profiles</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Approved Partners</span>
+                        <div class="stat-icon-wrap icon-success">✅</div>
+                    </div>
+                    <div class="stat-value" id="statApprovedDrivers">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-success">Active Fleet</span> Verified to accept trips</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Pending Approvals</span>
+                        <div class="stat-icon-wrap icon-warning">⏳</div>
+                    </div>
+                    <div class="stat-value" id="statPendingDrivers">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-warning">Awaiting Review</span> Verification pending</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Blocked / Suspended</span>
+                        <div class="stat-icon-wrap icon-danger">🚫</div>
+                    </div>
+                    <div class="stat-value" id="statBlockedDrivers">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-danger">Restricted</span> Access temporarily blocked</div>
+                </div>
+            </section>
+
+            <!-- Main Data Table Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2 id="driversTableHeading">All Registered Drivers</h2>
+                        <p id="driversSubtitle">Viewing driver partners, licence verifications, and fleet status.</p>
+                    </div>
+                </div>
+
+                <!-- Search and Filters Bar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input 
+                                type="search" 
+                                id="searchInput" 
+                                class="input-control" 
+                                placeholder="Search by name, email, phone, license, vehicle..." 
+                                aria-label="Search drivers by name, email, phone, license, or vehicle"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <select id="statusFilter" class="select-control" aria-label="Filter by driver status">
+                            <option value="all">All Statuses</option>
+                            <option value="pending">Pending Applications</option>
+                            <option value="approved">Approved Partners</option>
+                            <option value="rejected">Rejected Applications</option>
+                            <option value="blocked">Blocked / Suspended</option>
+                        </select>
+
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset all filters">
+                            <span>✕</span> Reset
+                        </button>
+                    </div>
+
+                    <div class="table-toolbar-right">
+                        <select id="limitFilter" class="select-control" aria-label="Items per page">
+                            <option value="5">5 per page</option>
+                            <option value="10" selected>10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="card-body p-0">
+                    <div 
+                        tabindex="0" 
+                        role="region" 
+                        aria-labelledby="driversTableHeading" 
+                        class="table-responsive"
+                    >
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="min-width: 180px;">Driver Details</th>
+                                    <th scope="col" style="min-width: 170px;">Licence & Expiry</th>
+                                    <th scope="col" style="min-width: 200px;">Linked Vehicle</th>
+                                    <th scope="col" style="min-width: 120px;">Performance</th>
+                                    <th scope="col" style="min-width: 110px;">Status</th>
+                                    <th scope="col" style="text-align: center; min-width: 160px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="driversList">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <span class="loading-spinner"></span> Loading driver records from database...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="table-pagination" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 drivers</div>
+                    <div class="pagination-controls" id="paginationControls">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <!-- Client-side Vanilla JavaScript -->
+    <script src="../public/js/manage-drivers.js"></script>
+</body>
+</html>

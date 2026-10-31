@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fare Rules & Pricing | RideNow Admin</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="admin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role">Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Core Management</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips & Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing & Insights</div>
+            <a href="fare-rules.html" class="nav-item active">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports & Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar">AD</div>
+                <div class="user-details">
+                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Fare Rules & Rate Cards</h1>
+                <p>Configure base fares, per-kilometer charges, and cancellation fees.</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Vehicle Category Rate Cards</h2>
+                        <p>Current active fare matrices applied to customer ride estimations.</p>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Base Fare</th>
+                                    <th>Rate / km</th>
+                                    <th>Rate / min</th>
+                                    <th>Cancellation Fee</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Hatchback</strong></td>
+                                    <td>₹50.00</td>
+                                    <td>₹12.00</td>
+                                    <td>₹1.50</td>
+                                    <td>₹25.00</td>
+                                    <td><span class="badge-pill badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sedan</strong></td>
+                                    <td>₹70.00</td>
+                                    <td>₹15.00</td>
+                                    <td>₹2.00</td>
+                                    <td>₹35.00</td>
+                                    <td><span class="badge-pill badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SUV</strong></td>
+                                    <td>₹100.00</td>
+                                    <td>₹20.00</td>
+                                    <td>₹3.00</td>
+                                    <td>₹50.00</td>
+                                    <td><span class="badge-pill badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Auto</strong></td>
+                                    <td>₹30.00</td>
+                                    <td>₹9.00</td>
+                                    <td>₹1.00</td>
+                                    <td>₹15.00</td>
+                                    <td><span class="badge-pill badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Bike</strong></td>
+                                    <td>₹20.00</td>
+                                    <td>₹6.00</td>
+                                    <td>₹0.50</td>
+                                    <td>₹10.00</td>
+                                    <td><span class="badge-pill badge-success">Active</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
+
