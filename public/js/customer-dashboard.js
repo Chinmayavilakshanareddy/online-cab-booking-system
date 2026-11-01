@@ -335,8 +335,8 @@ document.getElementById("refreshRidesButton")?.addEventListener(
 async function loadActiveFareRulesAndAreas() {
     try {
         const [faresRes, areasRes] = await Promise.allSettled([
-            fetch(`${API_BASE}/api/fare-rules`),
-            fetch(`${API_BASE}/api/service-areas`)
+            fetch(`${API_BASE}/fare-rules`),
+            fetch(`${API_BASE}/service-areas`)
         ]);
 
         if (faresRes.status === "fulfilled" && faresRes.value.ok) {
