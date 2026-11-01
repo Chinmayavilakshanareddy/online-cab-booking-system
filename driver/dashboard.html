@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RideNow | Driver Dashboard</title>
+    <link rel="stylesheet" href="../public/css/driver.css">
+</head>
+<body>
+
+    <header>
+        <h1>RideNow <span>Driver</span></h1>
+
+        <nav>
+            <a href="#profile">Profile</a>
+            <a href="#vehicle">My Vehicle</a>
+            <a href="#requests">Ride Requests</a>
+            <a href="#active-trip">Active Trip</a>
+            <a href="#history">Earnings & History</a>
+            <button id="logoutButton" type="button" class="logout-btn">Log Out</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- 1. Driver Profile & Availability -->
+        <section id="profile">
+            <h2 id="welcomeHeading">Welcome, Driver!</h2>
+            <p>Manage your availability, view incoming ride requests, and track your daily trips.</p>
+
+            <div class="profile-grid">
+                <div class="profile-card">
+                    <h3>Driver Details</h3>
+                    <p><strong>Name:</strong> <span id="driverName">Loading...</span></p>
+                    <p><strong>Email:</strong> <span id="driverEmail">Loading...</span></p>
+                    <p><strong>Phone:</strong> <span id="driverPhone">Loading...</span></p>
+                    <p><strong>License No:</strong> <span id="driverLicense">Loading...</span></p>
+                    <p><strong>License Expiry:</strong> <span id="driverLicenseExpiry">Loading...</span></p>
+                    <p><strong>Verification:</strong> <span id="driverVerification" class="status-badge status-online">Approved</span></p>
+                    <p><strong>Driver Rating:</strong> <span id="driverRating">⭐ 5.0 / 5.0</span></p>
+                </div>
+
+                <div class="profile-card">
+                    <h3>Duty Status</h3>
+                    <p>Set whether you are currently ready to receive ride requests from nearby passengers.</p>
+
+                    <div class="availability-box">
+                        <div>
+                            <strong>Availability:</strong>
+                            <span id="availabilityBadge" class="status-badge status-online">ONLINE</span>
+                        </div>
+                        <button id="toggleAvailabilityBtn" type="button" class="btn-secondary">Go Offline</button>
+                    </div>
+
+                    <p style="margin-top: 14px; font-size: 13px; color: #666666;">
+                        <em>Note: You must be Online to accept ride requests.</em>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Vehicle Details -->
+        <section id="vehicle">
+            <h3>My Vehicle</h3>
+            <p>The vehicle assigned to your driver account for fulfilling rides.</p>
+
+            <div class="driver-card" style="margin-bottom: 16px;">
+                <div class="driver-card-info">
+                    <h4 id="vehModelTitle">Vehicle Model</h4>
+                    <p><strong>Registration Number:</strong> <span id="vehNumber">-</span></p>
+                    <p><strong>Type:</strong> <span id="vehType">-</span></p>
+                    <p><strong>Model:</strong> <span id="vehModel">-</span></p>
+                    <p><strong>Seating Capacity:</strong> <span id="vehCapacity">-</span> persons</p>
+                    <p><strong>Status:</strong> <span id="vehStatus" class="status-badge status-online">Active</span></p>
+                </div>
+            </div>
+
+            <details>
+                <summary style="cursor: pointer; font-size: 14px; font-weight: bold; color: #444444; margin-bottom: 10px;">
+                    Update Vehicle Information ▾
+                </summary>
+                <form id="vehicleForm" class="simple-form" style="margin-top: 10px;">
+                    <div class="form-group">
+                        <label for="updateVehNumber">Vehicle Number</label>
+                        <input type="text" id="updateVehNumber" name="vehicleNumber" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="updateVehType">Vehicle Type</label>
+                        <select id="updateVehType" name="vehicleType" required>
+                            <option value="Sedan">Sedan</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Auto">Auto</option>
+                            <option value="Bike">Bike</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="updateVehModel">Model</label>
+                        <input type="text" id="updateVehModel" name="model" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="updateVehCapacity">Capacity</label>
+                        <input type="number" id="updateVehCapacity" name="capacity" min="1" max="8" required>
+                    </div>
+
+                    <div class="form-group span-two">
+                        <button type="submit" class="primary-btn">Save Vehicle Details</button>
+                        <span id="vehicleFormMsg" class="status-msg"></span>
+                    </div>
+                </form>
+            </details>
+        </section>
+
+        <!-- 3. Available Ride Requests -->
+        <section id="requests">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h3 style="border-bottom: none; margin-bottom: 0;">Available Ride Requests</h3>
+                    <p style="margin-top: 4px;">Incoming customer booking requests available for acceptance.</p>
+                </div>
+                <button type="button" id="refreshRequestsBtn" class="primary-btn">Refresh Requests</button>
+            </div>
+
+            <div id="requestsContainer" class="card-list">
+                <p>Loading available ride requests...</p>
+            </div>
+        </section>
+
+        <!-- 4. Current Active Trip -->
+        <section id="active-trip">
+            <h3>Current Active Trip</h3>
+            <p>Manage your ongoing ride from pickup to drop-off.</p>
+
+            <div id="activeTripContainer">
+                <p>Checking for active trips...</p>
+            </div>
+        </section>
+
+        <!-- 5. Trip History & Earnings -->
+        <section id="history">
+            <h3>Trip History & Earnings</h3>
+
+            <div class="stats-row">
+                <div class="stat-box">
+                    <h4>Total Completed Trips</h4>
+                    <p id="totalTripsCount">0</p>
+                </div>
+                <div class="stat-box">
+                    <h4>Total Earnings (₹)</h4>
+                    <p id="totalEarningsAmount">₹0.00</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                <button type="button" id="refreshHistoryBtn" class="btn-secondary">Refresh History</button>
+            </div>
+
+            <div id="historyContainer">
+                <p>Loading trip history...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="../public/js/driver-dashboard.js"></script>
+</body>
+</html>

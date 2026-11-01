@@ -27,6 +27,7 @@ const MIME_TYPES = {
 
 // In-memory session cache: token -> session data
 const activeSessions = new Map();
+const driverAvailability = new Map();
 
 function sendJson(res, statusCode, data) {
     res.writeHead(statusCode, {
@@ -595,6 +596,591 @@ const server = http.createServer(async (req, res) => {
             } finally {
                 connection.release();
             }
+        }
+
+        
+        // ========================================
+        // 3b. DRIVER MODULE REST APIs
+        // ========================================
+
+        // Driver Registration
+        if (req.method === "POST" && pathname === "/api/drivers/register") {
+            const {
+                name, email, phone, password,
+                licenseNo, licenseExpiry,
+                vehicleNumber, vehicleType, model, capacity
+            } = await readJson(req);
+
+            if (
+                typeof name !== "string" || !name.trim() ||
+                typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+                typeof phone !== "string" || !/^[0-9]{10}$/.test(phone.trim()) ||
+                typeof password !== "string" || password.length < 8 ||
+                typeof licenseNo !== "string" || !licenseNo.trim() ||
+                !licenseExpiry ||
+                typeof vehicleNumber !== "string" || !vehicleNumber.trim() ||
+                typeof vehicleType !== "string" || !vehicleType.trim()
+            ) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Please provide valid personal, license, and vehicle details."
+                });
+            }
+
+            const passwordHash = await bcrypt.hash(password, 10);
+            const connection = await pool.getConnection();
+
+            try {
+                await connection.beginTransaction();
+
+                const [userRes] = await connection.execute(
+                    `INSERT INTO users (name, email, password, mobile, role, status) VALUES (?, ?, ?, ?, 'driver', 'active')`,
+                    [name.trim(), email.trim().toLowerCase(), passwordHash, phone.trim()]
+                );
+
+                const userId = userRes.insertId;
+
+                const [driverRes] = await connection.execute(
+                    `INSERT INTO driver_profiles (user_id, license_no, license_expiry, verification_status, rating) VALUES (?, ?, ?, 'approved', 5.00)`,
+                    [userId, licenseNo.trim(), licenseExpiry]
+                );
+
+                const driverId = driverRes.insertId;
+
+                await connection.execute(
+                    `INSERT INTO vehicles (driver_id, vehicle_number, vehicle_type, model, capacity, status) VALUES (?, ?, ?, ?, ?, 'active')`,
+                    [driverId, vehicleNumber.trim().toUpperCase(), vehicleType.trim(), (model || "Standard").trim(), parseInt(capacity, 10) || 4]
+                );
+
+                await connection.commit();
+
+                await logActivity(userId, "DRIVER_REGISTER", `Driver ${name.trim()} registered.`, clientIp);
+
+                return sendJson(res, 201, {
+                    success: true,
+                    message: "Driver registered successfully."
+                });
+            } catch (error) {
+                await connection.rollback();
+                if (error.code === "ER_DUP_ENTRY") {
+                    return sendJson(res, 409, {
+                        success: false,
+                        message: "Email, phone, license number, or vehicle number is already registered."
+                    });
+                }
+                console.error("Driver registration error:", error);
+                return sendJson(res, 500, {
+                    success: false,
+                    message: "Driver registration failed: " + error.message
+                });
+            } finally {
+                connection.release();
+            }
+        }
+
+        // Driver Login
+        if (req.method === "POST" && pathname === "/api/drivers/login") {
+            const { email, password } = await readJson(req);
+
+            if (!email || !password) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Email and password are required."
+                });
+            }
+
+            const [users] = await pool.execute(
+                `SELECT u.user_id, u.name, u.email, u.password, u.mobile, u.role, u.status,
+                        d.driver_id, d.license_no, DATE_FORMAT(d.license_expiry, '%Y-%m-%d') as license_expiry,
+                        d.verification_status, d.rating
+                 FROM users u
+                 LEFT JOIN driver_profiles d ON u.user_id = d.user_id
+                 WHERE u.email = ? AND u.role = 'driver'`,
+                [email.trim().toLowerCase()]
+            );
+
+            if (users.length === 0) {
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Invalid driver email or password."
+                });
+            }
+
+            const user = users[0];
+
+            if (user.status === "blocked") {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Your driver account is suspended. Contact support."
+                });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Invalid driver email or password."
+                });
+            }
+
+            const sessionToken = crypto.randomBytes(32).toString("hex");
+            activeSessions.set(sessionToken, {
+                user_id: user.user_id,
+                driver_id: user.driver_id,
+                name: user.name,
+                email: user.email,
+                mobile: user.mobile,
+                role: user.role,
+                status: user.status,
+                license_no: user.license_no,
+                verification_status: user.verification_status,
+                rating: user.rating,
+                expiresAt: Date.now() + 24 * 60 * 60 * 1000
+            });
+
+            if (user.driver_id) {
+                driverAvailability.set(user.driver_id, true);
+            }
+
+            res.setHeader(
+                "Set-Cookie",
+                `session_token=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400`
+            );
+
+            await logActivity(user.user_id, "DRIVER_LOGIN", `Driver ${user.name} logged in.`, clientIp);
+
+            return sendJson(res, 200, {
+                success: true,
+                message: "Driver login successful.",
+                token: sessionToken,
+                driver: {
+                    user_id: user.user_id,
+                    driver_id: user.driver_id,
+                    name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    license_no: user.license_no,
+                    license_expiry: user.license_expiry,
+                    verification_status: user.verification_status,
+                    rating: user.rating,
+                    is_online: true
+                }
+            });
+        }
+
+        // Driver Current Profile & Session Check
+        if (req.method === "GET" && pathname === "/api/drivers/me") {
+            const sessionToken = getSessionToken(req);
+
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Please log in first"
+                });
+            }
+
+            const session = activeSessions.get(sessionToken);
+
+            if (session.expiresAt && session.expiresAt < Date.now()) {
+                activeSessions.delete(sessionToken);
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Session expired. Please log in again."
+                });
+            }
+
+            const [rows] = await pool.execute(
+                `SELECT u.user_id, u.name, u.email, u.mobile, u.role, u.status,
+                        d.driver_id, d.license_no, DATE_FORMAT(d.license_expiry, '%Y-%m-%d') as license_expiry,
+                        d.verification_status, d.rating
+                 FROM users u
+                 LEFT JOIN driver_profiles d ON u.user_id = d.user_id
+                 WHERE u.user_id = ?`,
+                [session.user_id]
+            );
+
+            if (rows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Driver not found" });
+            }
+
+            const d = rows[0];
+            const isOnline = driverAvailability.has(d.driver_id) ? driverAvailability.get(d.driver_id) : true;
+
+            return sendJson(res, 200, {
+                success: true,
+                driver: {
+                    user_id: d.user_id,
+                    driver_id: d.driver_id,
+                    name: d.name,
+                    email: d.email,
+                    mobile: d.mobile,
+                    license_no: d.license_no,
+                    license_expiry: d.license_expiry,
+                    verification_status: d.verification_status,
+                    rating: d.rating,
+                    is_online: isOnline
+                }
+            });
+        }
+
+        // Toggle Driver Availability (Online / Offline)
+        if (req.method === "POST" && pathname === "/api/drivers/toggle-availability") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+            const { isOnline } = await readJson(req);
+
+            const statusBool = Boolean(isOnline);
+            if (session.driver_id) {
+                driverAvailability.set(session.driver_id, statusBool);
+            }
+
+            return sendJson(res, 200, {
+                success: true,
+                is_online: statusBool,
+                message: `Status updated to ${statusBool ? "Online" : "Offline"}.`
+            });
+        }
+
+        // Get Driver Vehicle
+        if (req.method === "GET" && pathname === "/api/drivers/vehicle") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+
+            const [vehicles] = await pool.execute(
+                `SELECT vehicle_id, driver_id, vehicle_number, vehicle_type, model, capacity, status
+                 FROM vehicles
+                 WHERE driver_id = ?
+                 ORDER BY vehicle_id DESC
+                 LIMIT 1`,
+                [session.driver_id]
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                vehicle: vehicles.length > 0 ? vehicles[0] : null
+            });
+        }
+
+        // Add or Update Driver Vehicle
+        if (req.method === "POST" && pathname === "/api/drivers/vehicle") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+            const { vehicleNumber, vehicleType, model, capacity } = await readJson(req);
+
+            if (!vehicleNumber || !vehicleType || !model) {
+                return sendJson(res, 400, { success: false, message: "All vehicle fields are required." });
+            }
+
+            const [existing] = await pool.execute(
+                `SELECT vehicle_id FROM vehicles WHERE driver_id = ? LIMIT 1`,
+                [session.driver_id]
+            );
+
+            if (existing.length > 0) {
+                await pool.execute(
+                    `UPDATE vehicles SET vehicle_number = ?, vehicle_type = ?, model = ?, capacity = ? WHERE vehicle_id = ?`,
+                    [vehicleNumber.trim().toUpperCase(), vehicleType.trim(), model.trim(), parseInt(capacity, 10) || 4, existing[0].vehicle_id]
+                );
+            } else {
+                await pool.execute(
+                    `INSERT INTO vehicles (driver_id, vehicle_number, vehicle_type, model, capacity, status) VALUES (?, ?, ?, ?, ?, 'active')`,
+                    [session.driver_id, vehicleNumber.trim().toUpperCase(), vehicleType.trim(), model.trim(), parseInt(capacity, 10) || 4]
+                );
+            }
+
+            return sendJson(res, 200, {
+                success: true,
+                message: "Vehicle details updated successfully."
+            });
+        }
+
+        // Available Ride Requests for Drivers
+        if (req.method === "GET" && pathname === "/api/drivers/available-requests") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+
+            const [requests] = await pool.query(
+                `SELECT r.request_id, r.passenger_id, r.pickup_location, r.destination,
+                        r.vehicle_type, r.estimated_fare, r.status,
+                        DATE_FORMAT(r.scheduled_at, '%b %d, %H:%i') AS scheduled_at,
+                        u.name AS passenger_name, u.mobile AS passenger_phone
+                 FROM ride_requests r
+                 JOIN passenger_profiles pp ON r.passenger_id = pp.passenger_id
+                 JOIN users u ON pp.user_id = u.user_id
+                 WHERE r.status = 'pending'
+                 ORDER BY r.request_id DESC
+                 LIMIT 20`
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                requests: requests
+            });
+        }
+
+        // Accept a Ride Request
+        if (req.method === "POST" && pathname === "/api/drivers/accept-ride") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+            const { requestId } = await readJson(req);
+
+            if (!requestId) {
+                return sendJson(res, 400, { success: false, message: "Request ID is required." });
+            }
+
+            const [activeTrips] = await pool.execute(
+                `SELECT trip_id FROM trips WHERE driver_id = ? AND trip_status IN ('assigned', 'started') LIMIT 1`,
+                [session.driver_id]
+            );
+            if (activeTrips.length > 0) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "You already have an active trip in progress. Complete it before accepting another ride."
+                });
+            }
+
+            const [vehicles] = await pool.execute(
+                `SELECT vehicle_id FROM vehicles WHERE driver_id = ? AND status = 'active' LIMIT 1`,
+                [session.driver_id]
+            );
+            if (vehicles.length === 0) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "You need an active registered vehicle to accept rides. Please add vehicle details first."
+                });
+            }
+            const vehicleId = vehicles[0].vehicle_id;
+
+            const [reqRows] = await pool.execute(
+                `SELECT request_id, passenger_id, pickup_location, destination, estimated_fare, status FROM ride_requests WHERE request_id = ?`,
+                [requestId]
+            );
+            if (reqRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Ride request not found." });
+            }
+            if (reqRows[0].status !== "pending") {
+                return sendJson(res, 409, { success: false, message: "This ride has already been accepted or cancelled." });
+            }
+
+            const ride = reqRows[0];
+            const connection = await pool.getConnection();
+
+            try {
+                await connection.beginTransaction();
+
+                await connection.execute(
+                    `UPDATE ride_requests SET status = 'accepted' WHERE request_id = ?`,
+                    [requestId]
+                );
+
+                const [tripRes] = await connection.execute(
+                    `INSERT INTO trips (request_id, passenger_id, driver_id, vehicle_id, start_time, fare, trip_status)
+                     VALUES (?, ?, ?, ?, NOW(), ?, 'assigned')`,
+                    [ride.request_id, ride.passenger_id, session.driver_id, vehicleId, ride.estimated_fare]
+                );
+
+                await connection.commit();
+
+                await logActivity(session.user_id, "RIDE_ACCEPTED", `Driver accepted ride #${ride.request_id}. Trip #${tripRes.insertId} created.`, clientIp);
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: "Ride accepted successfully!",
+                    trip_id: tripRes.insertId
+                });
+            } catch (err) {
+                await connection.rollback();
+                console.error("Accept ride error:", err);
+                return sendJson(res, 500, { success: false, message: "Failed to accept ride: " + err.message });
+            } finally {
+                connection.release();
+            }
+        }
+
+        // Active Trip Details for Driver
+        if (req.method === "GET" && pathname === "/api/drivers/active-trip") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+
+            const [trips] = await pool.execute(
+                `SELECT t.trip_id, t.request_id, t.passenger_id, t.driver_id, t.vehicle_id,
+                        t.start_time, t.distance_km, t.fare, t.trip_status,
+                        r.pickup_location, r.destination,
+                        u.name AS passenger_name, u.mobile AS passenger_phone,
+                        v.vehicle_number, v.vehicle_type
+                 FROM trips t
+                 JOIN ride_requests r ON t.request_id = r.request_id
+                 JOIN passenger_profiles pp ON t.passenger_id = pp.passenger_id
+                 JOIN users u ON pp.user_id = u.user_id
+                 JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+                 WHERE t.driver_id = ? AND t.trip_status IN ('assigned', 'started')
+                 ORDER BY t.trip_id DESC
+                 LIMIT 1`,
+                [session.driver_id]
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                trip: trips.length > 0 ? trips[0] : null
+            });
+        }
+
+        // Start Trip
+        if (req.method === "POST" && pathname === "/api/drivers/start-trip") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+            const { tripId } = await readJson(req);
+
+            await pool.execute(
+                `UPDATE trips SET trip_status = 'started', start_time = NOW() WHERE trip_id = ? AND driver_id = ?`,
+                [tripId, session.driver_id]
+            );
+
+            await logActivity(session.user_id, "TRIP_STARTED", `Driver started trip #${tripId}.`, clientIp);
+
+            return sendJson(res, 200, {
+                success: true,
+                message: "Trip started successfully."
+            });
+        }
+
+        // Complete Trip
+        if (req.method === "POST" && pathname === "/api/drivers/complete-trip") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+            const { tripId, distanceKm } = await readJson(req);
+
+            const [trips] = await pool.execute(
+                `SELECT t.trip_id, t.request_id, t.passenger_id, t.fare, v.vehicle_type
+                 FROM trips t
+                 JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+                 WHERE t.trip_id = ? AND t.driver_id = ?`,
+                [tripId, session.driver_id]
+            );
+
+            if (trips.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Active trip not found." });
+            }
+
+            const trip = trips[0];
+            const dist = parseFloat(distanceKm) > 0 ? parseFloat(distanceKm) : 5.0;
+
+            const [fareRule] = await pool.execute(
+                `SELECT base_fare, per_km_rate FROM fare_rules WHERE vehicle_type = ? AND status = 'active' LIMIT 1`,
+                [trip.vehicle_type]
+            );
+
+            let finalFare = Number(trip.fare);
+            if (fareRule.length > 0) {
+                finalFare = Number(fareRule[0].base_fare) + (dist * Number(fareRule[0].per_km_rate));
+            }
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                await connection.execute(
+                    `UPDATE trips SET trip_status = 'completed', end_time = NOW(), distance_km = ?, fare = ? WHERE trip_id = ?`,
+                    [dist, finalFare, tripId]
+                );
+
+                await connection.execute(
+                    `UPDATE ride_requests SET status = 'completed' WHERE request_id = ?`,
+                    [trip.request_id]
+                );
+
+                await connection.execute(
+                    `INSERT INTO payments (trip_id, passenger_id, amount, payment_method, payment_status, paid_at)
+                     VALUES (?, ?, ?, 'upi', 'completed', NOW())
+                     ON DUPLICATE KEY UPDATE amount = VALUES(amount), payment_status = 'completed'`,
+                    [tripId, trip.passenger_id, finalFare]
+                );
+
+                await connection.commit();
+
+                await logActivity(session.user_id, "TRIP_COMPLETED", `Driver completed trip #${tripId}. Final fare: ₹${finalFare}.`, clientIp);
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: "Trip completed and settled successfully.",
+                    fare: finalFare
+                });
+            } catch (err) {
+                await connection.rollback();
+                console.error("Complete trip error:", err);
+                return sendJson(res, 500, { success: false, message: "Failed to complete trip: " + err.message });
+            } finally {
+                connection.release();
+            }
+        }
+
+        // Driver Completed Trips and Earnings
+        if (req.method === "GET" && pathname === "/api/drivers/my-trips") {
+            const sessionToken = getSessionToken(req);
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, { success: false, message: "Please log in first" });
+            }
+            const session = activeSessions.get(sessionToken);
+
+            const [trips] = await pool.execute(
+                `SELECT t.trip_id, t.request_id, t.distance_km, t.fare, t.trip_status,
+                        t.start_time, t.end_time,
+                        DATE_FORMAT(t.end_time, '%b %d, %Y, %h:%i %p') AS formatted_end_time,
+                        r.pickup_location, r.destination,
+                        u.name AS passenger_name
+                 FROM trips t
+                 JOIN ride_requests r ON t.request_id = r.request_id
+                 JOIN passenger_profiles pp ON t.passenger_id = pp.passenger_id
+                 JOIN users u ON pp.user_id = u.user_id
+                 WHERE t.driver_id = ? AND t.trip_status = 'completed'
+                 ORDER BY t.trip_id DESC`,
+                [session.driver_id]
+            );
+
+            const totalEarnings = trips.reduce((sum, t) => sum + Number(t.fare || 0), 0);
+
+            return sendJson(res, 200, {
+                success: true,
+                trips: trips,
+                total_earnings: totalEarnings
+            });
+        }
+
+        // Driver Logout
+        if (req.method === "POST" && pathname === "/api/drivers/logout") {
+            const sessionToken = getSessionToken(req);
+            if (sessionToken && activeSessions.has(sessionToken)) {
+                const s = activeSessions.get(sessionToken);
+                if (s.driver_id) {
+                    driverAvailability.delete(s.driver_id);
+                }
+                activeSessions.delete(sessionToken);
+            }
+            res.setHeader("Set-Cookie", "session_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+            return sendJson(res, 200, { success: true, message: "Driver logged out successfully" });
         }
 
         // 4. Admin Dashboard Statistics

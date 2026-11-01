@@ -1,0 +1,488 @@
+/* =====================================
+   RIDENOW - DRIVER MODULE STYLES
+   Simple, neutral, human-made student design
+   Matches customer.css styling
+===================================== */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    color: #333333;
+}
+
+/* Header & Navigation */
+
+header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dddddd;
+    padding: 15px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 22px;
+    color: #333333;
+}
+
+header h1 span {
+    color: #e67e22;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+nav a {
+    color: #444444;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+nav button,
+.logout-btn {
+    background-color: #555555;
+    color: #ffffff;
+    border: none;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 3px;
+}
+
+nav button:hover,
+.logout-btn:hover {
+    background-color: #333333;
+}
+
+/* Main Content Container */
+
+main {
+    width: 90%;
+    max-width: 1000px;
+    margin: 25px auto;
+}
+
+main section {
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    padding: 22px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+main h2 {
+    font-size: 20px;
+    color: #222222;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+main h3 {
+    font-size: 17px;
+    color: #333333;
+    margin-top: 0;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 8px;
+}
+
+main p {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 6px 0;
+}
+
+/* Profile and Availability Grid */
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.profile-card {
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    padding: 16px;
+    border-radius: 4px;
+}
+
+.availability-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px;
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-top: 12px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 3px;
+}
+
+.status-online {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-offline {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.status-assigned {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-started {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-cancelled {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Forms */
+
+.simple-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 18px;
+    max-width: 750px;
+}
+
+.simple-form.full-width {
+    grid-template-columns: 1fr;
+    max-width: 450px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.span-two {
+    grid-column: span 2;
+}
+
+label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #444444;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
+select {
+    padding: 9px 11px;
+    border: 1px solid #cccccc;
+    font-size: 14px;
+    background-color: #ffffff;
+    border-radius: 3px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #888888;
+}
+
+/* Buttons */
+
+.primary-btn {
+    background-color: #2b2b2b;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.primary-btn:hover {
+    background-color: #111111;
+}
+
+.btn-green {
+    background-color: #2e7d32;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.btn-green:hover {
+    background-color: #1b5e20;
+}
+
+.btn-red {
+    background-color: #c62828;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.btn-red:hover {
+    background-color: #8e0000;
+}
+
+.btn-secondary {
+    background-color: #757575;
+    color: #ffffff;
+    border: none;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.btn-secondary:hover {
+    background-color: #555555;
+}
+
+/* Auth Pages (Login & Register) */
+
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 85vh;
+    padding: 20px;
+}
+
+.auth-card {
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    padding: 30px;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 4px;
+}
+
+.auth-card.wide {
+    max-width: 650px;
+}
+
+.auth-card h1 {
+    font-size: 22px;
+    margin-top: 0;
+    margin-bottom: 6px;
+    color: #222222;
+}
+
+.auth-card p.subtitle {
+    font-size: 14px;
+    color: #666666;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.auth-switch {
+    font-size: 13px;
+    color: #666666;
+    margin-top: 18px;
+    text-align: center;
+}
+
+.auth-switch a {
+    color: #2b2b2b;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* Cards & Lists (Requests, Active Trip, Trips) */
+
+.card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.driver-card {
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    padding: 16px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.driver-card-info h4 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    color: #222222;
+}
+
+.driver-card-info p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #555555;
+}
+
+.driver-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Active Trip Hero Box */
+
+.active-trip-box {
+    background-color: #f8f9fa;
+    border-left: 4px solid #2e7d32;
+    padding: 18px;
+    border-radius: 3px;
+    margin-top: 10px;
+}
+
+.active-trip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.active-trip-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Summary Stats */
+
+.stats-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.stat-box {
+    flex: 1;
+    min-width: 140px;
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    padding: 14px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.stat-box h4 {
+    margin: 0;
+    font-size: 12px;
+    color: #777777;
+    text-transform: uppercase;
+}
+
+.stat-box p {
+    margin: 8px 0 0 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: #222222;
+}
+
+/* Table Style */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+    font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+.data-table th {
+    background-color: #f2f2f2;
+    color: #444444;
+    font-weight: bold;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* Status message banner */
+
+.status-msg {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 768px) {
+    .profile-grid,
+    .simple-form {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group.span-two {
+        grid-column: span 1;
+    }
+
+    .driver-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

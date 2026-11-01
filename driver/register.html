@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Registration | RideNow</title>
+    <link rel="stylesheet" href="../public/css/driver.css">
+</head>
+<body>
+
+    <main class="auth-container">
+        <form id="registerForm" class="auth-card wide">
+            <h1>RideNow <span>Driver Registration</span></h1>
+            <p class="subtitle">Join our driver network and start accepting rides.</p>
+
+            <h3 style="margin-top: 10px;">1. Personal & Account Details</h3>
+            <div class="simple-form">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="driver@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number (10 digits)</label>
+                    <input type="tel" id="phone" name="phone" placeholder="e.g. 9876543210" pattern="[0-9]{10}" maxlength="10" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password (min 8 chars)</label>
+                    <input type="password" id="password" name="password" placeholder="At least 8 characters" minlength="8" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="licenseNo">Driving License Number</label>
+                    <input type="text" id="licenseNo" name="licenseNo" placeholder="e.g. DL-1420110012345" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="licenseExpiry">License Expiry Date</label>
+                    <input type="date" id="licenseExpiry" name="licenseExpiry" required>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 20px;">2. Vehicle Details</h3>
+            <div class="simple-form">
+                <div class="form-group">
+                    <label for="vehicleNumber">Vehicle Registration Number</label>
+                    <input type="text" id="vehicleNumber" name="vehicleNumber" placeholder="e.g. KA-01-AB-1234" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleType">Vehicle Type</label>
+                    <select id="vehicleType" name="vehicleType" required>
+                        <option value="">Select vehicle type</option>
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Hatchback">Hatchback</option>
+                        <option value="Auto">Auto</option>
+                        <option value="Bike">Bike</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="model">Vehicle Model & Make</label>
+                    <input type="text" id="model" name="model" placeholder="e.g. Maruti Swift / Hyundai Aura" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="capacity">Passenger Capacity</label>
+                    <input type="number" id="capacity" name="capacity" value="4" min="1" max="8" required>
+                </div>
+            </div>
+
+            <div style="margin-top: 22px;">
+                <button type="submit" class="primary-btn" style="width: 100%;">Complete Registration</button>
+            </div>
+
+            <p id="registerMessage" class="status-msg" role="status"></p>
+
+            <p class="auth-switch">
+                Already registered as a driver?
+                <a href="login.html">Log in here</a>
+            </p>
+        </form>
+    </main>
+
+    <script src="../public/js/driver-auth.js"></script>
+</body>
+</html>
