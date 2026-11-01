@@ -1,49 +1,39 @@
-// RideNow - Customer Home Page
+const API_BASE = `http://${window.location.hostname}:3000/api`;
 
-(function () {
-    "use strict";
+const bookCabBtn = document.getElementById("bookCabBtn");
+const loginBtn = document.getElementById("loginBtn");
 
-    const bookCabBtn = document.getElementById("bookCabBtn");
-    const loginBtn   = document.getElementById("loginBtn");
+// Open the customer login page
+if (loginBtn) {
+    loginBtn.addEventListener("click", function () {
+        window.location.href = "login.html";
+    });
+}
 
-    // ── Session check: show logged-in state in navbar ──
-    const storedUser = localStorage.getItem("ridenow_user");
-    let currentUser = null;
-    try {
-        if (storedUser) currentUser = JSON.parse(storedUser);
-    } catch (e) { /* ignore */ }
-
-    if (currentUser && loginBtn) {
-        loginBtn.textContent = currentUser.name ? `Hi, ${currentUser.name.split(" ")[0]}` : "My Account";
-        loginBtn.addEventListener("click", function () {
-            // If admin/super_admin, go to admin dashboard; else stay on home
-            if (currentUser.role === "admin" || currentUser.role === "super_admin") {
-                window.location.href = "../admin/admin-dashboard.html";
+// Check whether the customer is logged in before booking
+if (bookCabBtn) {
+    bookCabBtn.addEventListener("click", async function () {
+        try {
+            const token = localStorage.getItem("session_token");
+            const headers = {};
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
             }
-        });
-    } else if (loginBtn) {
-        loginBtn.addEventListener("click", function () {
-            window.location.href = "login.html";
-        });
-    }
 
-    // ── Book a Cab: prevent blocked passengers ──
-    if (bookCabBtn) {
-        bookCabBtn.addEventListener("click", function () {
-            if (!currentUser) {
-                // Not logged in – redirect to login
+            const response = await fetch(`${API_BASE}/customers/me`, {
+                method: "GET",
+                headers,
+                credentials: "include"
+            });
+
+            if (response.ok) {
+                window.location.href = "dashboard.html#book-ride";
+            } else {
                 window.location.href = "login.html";
-                return;
             }
-
-            if (currentUser.status === "blocked") {
-                alert("⚠️ Your account has been blocked and you cannot book rides.\n\nPlease contact RideNow support for assistance.");
-                return;
-            }
-
-            // Passenger is active – booking feature coming next
-            alert("Cab booking feature is coming next!");
-        });
-    }
-
-})();
+        } catch (error) {
+            console.error("Authentication check failed:", error);
+            alert("Unable to connect to the server. Please try again.");
+        }
+    });
+}

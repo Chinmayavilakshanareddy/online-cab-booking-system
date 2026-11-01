@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Login | RideNow</title>
+    <link rel="stylesheet" href="../public/css/driver.css">
+</head>
+<body>
+
+    <main class="auth-container">
+        <form id="loginForm" class="auth-card">
+            <h1>RideNow <span>Driver</span></h1>
+            <p class="subtitle">Log in to manage trips and earn.</p>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="driver@example.com" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" class="primary-btn" style="width: 100%;">Log In</button>
+
+            <p id="loginMessage" class="status-msg" role="status"></p>
+
+            <p class="auth-switch">
+                New driver?
+                <a href="register.html">Register here</a>
+            </p>
+
+            <p class="auth-switch" style="margin-top: 8px;">
+                Looking to book a ride?
+                <a href="../customer/login.html">Customer Portal →</a>
+            </p>
+        </form>
+    </main>
+
+    <script src="../public/js/driver-auth.js"></script>
+</body>
+</html>

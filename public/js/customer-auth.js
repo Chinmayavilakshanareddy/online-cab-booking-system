@@ -1,202 +1,197 @@
-// RideNow - Customer Auth (Register & Login) connected to backend API
+// Backend API URL - auto-adapts to hostname, fallback to localhost for file:///
+const hostname = window.location.hostname || "localhost";
+const API_BASE = `http://${hostname}:3000/api`;
 
-(function () {
-    "use strict";
+// Display success and error messages
+function displayStatusMessage(element, message, isError = false) {
+    if (!element) return;
 
-    const API_BASE = window.location.origin.includes("3000")
-        ? window.location.origin
-        : "http://localhost:3000";
+    element.textContent = message;
+    element.style.color = isError ? "#c53030" : "#2f855a";
+    element.style.marginTop = "14px";
+    element.style.fontSize = "14px";
+    element.style.fontWeight = "600";
+}
 
-    // ───────────── REGISTRATION ─────────────
-    const registerForm = document.getElementById("registerForm");
+// ========================================
+// 1. CUSTOMER REGISTRATION
+// ========================================
 
-    if (registerForm) {
-        registerForm.addEventListener("submit", async function (event) {
-            event.preventDefault();
+const registerForm = document.getElementById("registerForm");
 
-            const name     = document.getElementById("name").value.trim();
-            const email    = document.getElementById("email").value.trim();
-            const phone    = document.getElementById("phone").value.trim();
-            const password = document.getElementById("password").value;
-            const msgEl    = document.getElementById("registerMessage");
-            const submitBtn = registerForm.querySelector("button[type='submit']");
+if (registerForm) {
+    registerForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
 
-            // Client-side validation
-            if (!name || !email || !phone || !password) {
-                showMsg(msgEl, "Please fill in all fields.", "error");
-                return;
-            }
-            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-                showMsg(msgEl, "Enter a valid email address.", "error");
-                return;
-            }
-            if (!/^[0-9]{10}$/.test(phone)) {
-                showMsg(msgEl, "Enter a valid 10-digit phone number.", "error");
-                return;
-            }
-            if (password.length < 8) {
-                showMsg(msgEl, "Password must be at least 8 characters.", "error");
-                return;
-            }
+        const name = document.getElementById("name")?.value.trim() || "";
+        const email = document.getElementById("email")?.value.trim().toLowerCase() || "";
+        const phone = document.getElementById("phone")?.value.trim() || "";
+        const password = document.getElementById("password")?.value || "";
 
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Creating account…";
-            showMsg(msgEl, "", "");
+        const messageEl = document.getElementById("registerMessage");
+        const submitBtn = registerForm.querySelector("button[type='submit']");
 
-            try {
-                const response = await fetch(`${API_BASE}/api/customers/register`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, email, phone, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showMsg(msgEl,
-                        "✓ Account created successfully! Redirecting to login…",
-                        "success");
-                    setTimeout(() => {
-                        window.location.href = "login.html";
-                    }, 1800);
-                } else {
-                    showMsg(msgEl, data.message || "Registration failed. Please try again.", "error");
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = "Create account";
-                }
-
-            } catch (err) {
-                console.error("Registration network error:", err);
-                showMsg(msgEl,
-                    "Could not connect to the server. Please make sure the backend is running.",
-                    "error");
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Create account";
-            }
-        });
-    }
-
-    // ───────────── LOGIN ─────────────
-    const loginForm = document.getElementById("loginForm");
-
-    if (loginForm) {
-        loginForm.addEventListener("submit", async function (event) {
-            event.preventDefault();
-
-            const email    = document.getElementById("email").value.trim();
-            const password = document.getElementById("password").value;
-            const msgEl    = document.getElementById("loginMessage");
-            const submitBtn = loginForm.querySelector("button[type='submit']");
-
-            if (!email || !password) {
-                showMsg(msgEl, "Please enter your email and password.", "error");
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Logging in…";
-            showMsg(msgEl, "", "");
-
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/login`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    const user = data.user;
-
-                    // ── Block check: server already rejects blocked users with 403,
-                    //    but we handle it gracefully here too.
-                    if (user.status === "blocked") {
-                        showMsg(msgEl,
-                            "🚫 Your account has been blocked. Please contact support.",
-                            "error");
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = "Log in";
-                        return;
-                    }
-
-                    // Persist session in localStorage
-                    localStorage.setItem("ridenow_user", JSON.stringify(user));
-
-                    // Role-based redirect
-                    if (user.role === "admin" || user.role === "super_admin") {
-                        showMsg(msgEl, "✓ Welcome back, Admin! Redirecting…", "success");
-                        setTimeout(() => {
-                            window.location.href = "../admin/admin-dashboard.html";
-                        }, 900);
-                    } else if (user.role === "passenger" || user.role === "customer") {
-                        showMsg(msgEl, `✓ Welcome back, ${user.name}! Redirecting…`, "success");
-                        setTimeout(() => {
-                            window.location.href = "index.html";
-                        }, 900);
-                    } else {
-                        // driver or other – land on home for now
-                        showMsg(msgEl, `✓ Logged in as ${user.role}.`, "success");
-                        setTimeout(() => {
-                            window.location.href = "index.html";
-                        }, 900);
-                    }
-
-                } else {
-                    // 403 = blocked, 401 = bad credentials
-                    if (response.status === 403) {
-                        showMsg(msgEl,
-                            "🚫 Your account has been blocked. Please contact RideNow support.",
-                            "error");
-                    } else {
-                        showMsg(msgEl, data.message || "Invalid email or password.", "error");
-                    }
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = "Log in";
-                }
-
-            } catch (err) {
-                console.error("Login network error:", err);
-                showMsg(msgEl,
-                    "Could not connect to the server. Please make sure the backend is running.",
-                    "error");
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Log in";
-            }
-        });
-    }
-
-    // ───────────── HELPERS ─────────────
-
-    /**
-     * Show a styled status message inside an element.
-     * @param {HTMLElement} el   - The <p> element for messages
-     * @param {string}      text - Message text
-     * @param {"success"|"error"|""}  type
-     */
-    function showMsg(el, text, type) {
-        if (!el) return;
-        el.textContent = text;
-        el.style.marginTop = "14px";
-        el.style.padding   = text ? "10px 14px" : "0";
-        el.style.borderRadius = "8px";
-        el.style.fontSize  = "14px";
-        el.style.fontWeight = "500";
-
-        if (type === "error") {
-            el.style.color      = "#b91c1c";
-            el.style.background = "#fee2e2";
-            el.style.border     = "1px solid #fca5a5";
-        } else if (type === "success") {
-            el.style.color      = "#15803d";
-            el.style.background = "#dcfce7";
-            el.style.border     = "1px solid #86efac";
-        } else {
-            el.style.color      = "";
-            el.style.background = "";
-            el.style.border     = "";
-            el.style.padding    = "0";
+        // Validate inputs
+        if (!name || !email || !phone || !password) {
+            displayStatusMessage(messageEl, "Please fill in all fields.", true);
+            return;
         }
-    }
 
-})();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            displayStatusMessage(messageEl, "Enter a valid email address.", true);
+            return;
+        }
+
+        if (!/^[0-9]{10}$/.test(phone)) {
+            displayStatusMessage(messageEl, "Enter a valid 10-digit phone number.", true);
+            return;
+        }
+
+        if (password.length < 8) {
+            displayStatusMessage(messageEl, "Password must contain at least 8 characters.", true);
+            return;
+        }
+
+        try {
+            if (submitBtn) submitBtn.disabled = true;
+
+            displayStatusMessage(
+                messageEl,
+                "Creating your account..."
+            );
+
+            const response = await fetch(`${API_BASE}/customers/register`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    name,
+                    email,
+                    phone,
+                    password
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                displayStatusMessage(
+                    messageEl,
+                    result.message || "Registration failed.",
+                    true
+                );
+                return;
+            }
+
+            displayStatusMessage(
+                messageEl,
+                "Registration successful! Redirecting to login..."
+            );
+
+            registerForm.reset();
+
+            setTimeout(() => {
+                window.location.href = "login.html";
+            }, 1200);
+
+        } catch (error) {
+            console.error("Registration error:", error);
+
+            displayStatusMessage(
+                messageEl,
+                "Unable to connect to the backend server. Make sure it is running on port 3000.",
+                true
+            );
+
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
+
+// ========================================
+// 2. CUSTOMER LOGIN
+// ========================================
+
+const loginForm = document.getElementById("loginForm");
+
+if (loginForm) {
+    loginForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const email = document.getElementById("email")?.value.trim().toLowerCase() || "";
+        const password = document.getElementById("password")?.value || "";
+
+        const messageEl = document.getElementById("loginMessage");
+        const submitBtn = loginForm.querySelector("button[type='submit']");
+
+        if (!email || !password) {
+            displayStatusMessage(
+                messageEl,
+                "Please enter your email and password.",
+                true
+            );
+            return;
+        }
+
+        try {
+            if (submitBtn) submitBtn.disabled = true;
+
+            displayStatusMessage(messageEl, "Logging in...");
+
+            const response = await fetch(`${API_BASE}/customers/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                displayStatusMessage(
+                    messageEl,
+                    result.message || "Invalid email or password.",
+                    true
+                );
+                return;
+            }
+
+            // Save token and customer info for session management on dashboard
+            if (result.token) {
+                localStorage.setItem("session_token", result.token);
+            }
+            if (result.customer) {
+                localStorage.setItem("customer", JSON.stringify(result.customer));
+            }
+
+            displayStatusMessage(
+                messageEl,
+                "Login successful! Redirecting..."
+            );
+
+            setTimeout(() => {
+                window.location.href = "dashboard.html";
+            }, 800);
+
+        } catch (error) {
+            console.error("Login error:", error);
+
+            displayStatusMessage(
+                messageEl,
+                "Unable to connect to the backend server. Make sure it is running on port 3000.",
+                true
+            );
+
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}

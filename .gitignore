@@ -5,7 +5,11 @@ backend/node_modules/
 # Environment variables and secrets
 .env
 .env.*
+backend/.env
+backend/.env.*
+**/.env
 !.env.example
+!backend/.env.example
 
 # Logs
 *.log
@@ -13,3 +17,4 @@ backend/node_modules/
 # Operating system files
 .DS_Store
 Thumbs.db
+desktop.ini
