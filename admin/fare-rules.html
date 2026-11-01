@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fare Rules & Pricing | RideNow Admin</title>
+    <title>Fare Rules &amp; Service Areas | RideNow Admin</title>
     <link rel="stylesheet" href="../public/css/admin.css">
 </head>
 <body>
 
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
@@ -36,113 +37,319 @@
             </a>
             <a href="manage-trips.html" class="nav-item">
                 <span class="icon">🗺️</span>
-                <span>Trips & Bookings</span>
+                <span>Trips &amp; Bookings</span>
             </a>
 
-            <div class="nav-section-title">Pricing & Insights</div>
+            <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item active">
                 <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
                 <span class="icon">📈</span>
-                <span>Reports & Analytics</span>
+                <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar">AD</div>
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
                 <div class="user-details">
-                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
             </div>
         </div>
     </aside>
 
+    <!-- ================= MAIN CONTENT ================= -->
     <main class="admin-main">
         <header class="admin-topbar">
             <div class="page-headline">
-                <h1>Fare Rules & Rate Cards</h1>
-                <p>Configure base fares, per-kilometer charges, and cancellation fees.</p>
+                <h1>Fare Rules &amp; Service Areas</h1>
+                <p>Configure dynamic base fares, kilometre rates, cancellation fees, and regional operational coverage.</p>
             </div>
             <div class="topbar-actions">
-                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+                <button type="button" class="btn-primary" id="addFareRuleBtn">+ Add Fare Rule</button>
+                <button type="button" class="btn-secondary" id="addServiceAreaBtn">+ Add Service Area</button>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh data">🔄 Refresh</button>
             </div>
         </header>
 
         <div class="admin-container">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title-group">
-                        <h2>Vehicle Category Rate Cards</h2>
-                        <p>Current active fare matrices applied to customer ride estimations.</p>
+            <!-- Quick KPI Stats -->
+            <div class="stats-grid">
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Rate Cards</span>
+                        <div class="stat-icon">💳</div>
                     </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Category</th>
-                                    <th>Base Fare</th>
-                                    <th>Rate / km</th>
-                                    <th>Rate / min</th>
-                                    <th>Cancellation Fee</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Hatchback</strong></td>
-                                    <td>₹50.00</td>
-                                    <td>₹12.00</td>
-                                    <td>₹1.50</td>
-                                    <td>₹25.00</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Sedan</strong></td>
-                                    <td>₹70.00</td>
-                                    <td>₹15.00</td>
-                                    <td>₹2.00</td>
-                                    <td>₹35.00</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>SUV</strong></td>
-                                    <td>₹100.00</td>
-                                    <td>₹20.00</td>
-                                    <td>₹3.00</td>
-                                    <td>₹50.00</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Auto</strong></td>
-                                    <td>₹30.00</td>
-                                    <td>₹9.00</td>
-                                    <td>₹1.00</td>
-                                    <td>₹15.00</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Bike</strong></td>
-                                    <td>₹20.00</td>
-                                    <td>₹6.00</td>
-                                    <td>₹0.50</td>
-                                    <td>₹10.00</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="stat-value" id="statActiveRules">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statActiveRulesPct">Active</span>
+                        <span id="statInactiveRulesMeta">Across vehicle categories</span>
                     </div>
-                </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Service Areas</span>
+                        <div class="stat-icon">📍</div>
+                    </div>
+                    <div class="stat-value" id="statActiveAreas">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-info" id="statTotalAreasMeta">Zones</span>
+                        <span>Authorized operational hubs</span>
+                    </div>
+                </article>
+
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Pricing Propagation</span>
+                        <div class="stat-icon">⚡</div>
+                    </div>
+                    <div class="stat-value" style="font-size: 20px; font-weight: 700; color: #166534;">Live Database</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success">Instant</span>
+                        <span>Auto-applied to future bookings</span>
+                    </div>
+                </article>
             </div>
+
+            <!-- Tab Switching Controls -->
+            <div class="pricing-tabs">
+                <button type="button" class="pricing-tab-btn active" id="tabBtnFareRules">
+                    💳 Vehicle Rate Cards &amp; Fare Rules
+                </button>
+                <button type="button" class="pricing-tab-btn" id="tabBtnServiceAreas">
+                    📍 Operational Service Areas &amp; Zones
+                </button>
+            </div>
+
+            <!-- ================= SECTION 1: FARE RULES ================= -->
+            <section id="sectionFareRules" class="pricing-section">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Vehicle Category Rate Cards</h2>
+                            <p>Current active fare matrices applied dynamically to customer ride estimations and driver trip totals.</p>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="search-input-group">
+                                <span class="search-icon">🔍</span>
+                                <input type="search" id="fareSearchInput" placeholder="Search vehicle category..." autocomplete="off">
+                            </div>
+                            <div class="filter-group">
+                                <label for="fareStatusFilter">Status:</label>
+                                <select id="fareStatusFilter">
+                                    <option value="all">All Statuses</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn-filter-reset" id="resetFareFiltersBtn">Reset Filters</button>
+                        </div>
+                        <div class="table-toolbar-right">
+                            <span class="results-count" id="fareRulesCount">Loading rate cards...</span>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Vehicle Category</th>
+                                        <th>Base Fare</th>
+                                        <th>Per-KM Rate</th>
+                                        <th>Per-Minute Rate</th>
+                                        <th>Cancellation Fee</th>
+                                        <th>Status</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fareRulesTableBody">
+                                    <tr>
+                                        <td colspan="7" class="empty-state-cell">Loading fare rules from database...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECTION 2: SERVICE AREAS ================= -->
+            <section id="sectionServiceAreas" class="pricing-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Operational Service Areas &amp; Zones</h2>
+                            <p>Manage geographic service areas, cities, and regional availability toggles for ride dispatch.</p>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="search-input-group">
+                                <span class="search-icon">🔍</span>
+                                <input type="search" id="areaSearchInput" placeholder="Search area name, city, state..." autocomplete="off">
+                            </div>
+                            <div class="filter-group">
+                                <label for="areaStatusFilter">Status:</label>
+                                <select id="areaStatusFilter">
+                                    <option value="all">All Statuses</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn-filter-reset" id="resetAreaFiltersBtn">Reset Filters</button>
+                        </div>
+                        <div class="table-toolbar-right">
+                            <span class="results-count" id="serviceAreasCount">Loading service areas...</span>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Area / Zone Name</th>
+                                        <th>City</th>
+                                        <th>State</th>
+                                        <th>Status</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="serviceAreasTableBody">
+                                    <tr>
+                                        <td colspan="5" class="empty-state-cell">Loading service areas from database...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
+    <!-- ================= MODAL: ADD / EDIT FARE RULE ================= -->
+    <div class="modal-overlay" id="fareModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="fareModalTitle">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="fareModalTitle">Configure Fare Rule</h2>
+                <button type="button" class="modal-close-btn" id="fareModalCloseBtn" aria-label="Close modal">&times;</button>
+            </div>
+            <form id="fareRuleForm" novalidate>
+                <input type="hidden" id="editFareId">
+                <div class="form-error" id="fareFormError" style="display: none;"></div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fVehicleType">Vehicle Category <span class="req">*</span></label>
+                        <input type="text" id="fVehicleType" placeholder="e.g. Hatchback, Sedan, SUV, Auto, Bike" required>
+                        <span class="field-hint">Must match ride categories requested by passengers.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fBaseFare">Base Fare (₹) <span class="req">*</span></label>
+                        <input type="number" id="fBaseFare" step="0.50" min="0" placeholder="e.g. 50.00" required>
+                        <span class="field-hint">Minimum initial booking fee charged upfront.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fPerKmRate">Per-Kilometre Rate (₹/km) <span class="req">*</span></label>
+                        <input type="number" id="fPerKmRate" step="0.25" min="0" placeholder="e.g. 12.00" required>
+                        <span class="field-hint">Applied to actual distance traveled.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fPerMinuteRate">Per-Minute Rate (₹/min) <span class="req">*</span></label>
+                        <input type="number" id="fPerMinuteRate" step="0.10" min="0" placeholder="e.g. 1.50" required>
+                        <span class="field-hint">Trip duration wait and transit time charge.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fCancellationFee">Cancellation Fee (₹) <span class="req">*</span></label>
+                        <input type="number" id="fCancellationFee" step="0.50" min="0" placeholder="e.g. 25.00" required>
+                        <span class="field-hint">Levied if passenger cancels after assignment.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fFareStatus">Rule Status <span class="req">*</span></label>
+                        <select id="fFareStatus" required>
+                            <option value="active">Active (Available for ride booking)</option>
+                            <option value="inactive">Inactive (Disabled / Hidden)</option>
+                        </select>
+                        <span class="field-hint">Only active fare rules are applied to future rides.</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="fareModalCancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="fareFormSubmitBtn">Save Fare Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: ADD / EDIT SERVICE AREA ================= -->
+    <div class="modal-overlay" id="areaModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="areaModalTitle">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="areaModalTitle">Configure Service Area</h2>
+                <button type="button" class="modal-close-btn" id="areaModalCloseBtn" aria-label="Close modal">&times;</button>
+            </div>
+            <form id="serviceAreaForm" novalidate>
+                <input type="hidden" id="editAreaId">
+                <div class="form-error" id="areaFormError" style="display: none;"></div>
+
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="fAreaName">Area / Zone Name <span class="req">*</span></label>
+                        <input type="text" id="fAreaName" placeholder="e.g. Whitefield Tech Corridor, Koramangala" required>
+                        <span class="field-hint">Descriptive name for passenger pickup/drop territory.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fCity">City <span class="req">*</span></label>
+                        <input type="text" id="fCity" placeholder="e.g. Bangalore" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fState">State <span class="req">*</span></label>
+                        <input type="text" id="fState" placeholder="e.g. Karnataka" required>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="fAreaStatus">Service Area Status <span class="req">*</span></label>
+                        <select id="fAreaStatus" required>
+                            <option value="active">Active (Currently servicing rides)</option>
+                            <option value="inactive">Inactive (Temporarily suspended)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="areaModalCancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="areaFormSubmitBtn">Save Service Area</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/fare-rules.js"></script>
 </body>
 </html>
-

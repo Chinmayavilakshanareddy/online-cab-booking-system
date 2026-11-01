@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports & Analytics | RideNow Admin</title>
+    <title>Reports &amp; Analytics | RideNow Admin</title>
     <link rel="stylesheet" href="../public/css/admin.css">
 </head>
 <body>
 
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
@@ -36,82 +37,280 @@
             </a>
             <a href="manage-trips.html" class="nav-item">
                 <span class="icon">🗺️</span>
-                <span>Trips & Bookings</span>
+                <span>Trips &amp; Bookings</span>
             </a>
 
-            <div class="nav-section-title">Pricing & Insights</div>
+            <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
                 <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item active">
                 <span class="icon">📈</span>
-                <span>Reports & Analytics</span>
+                <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar">AD</div>
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
                 <div class="user-details">
-                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
             </div>
         </div>
     </aside>
 
+    <!-- ================= MAIN CONTENT ================= -->
     <main class="admin-main">
         <header class="admin-topbar">
             <div class="page-headline">
-                <h1>Revenue & Operations Reports</h1>
-                <p>High-level performance analysis, driver utilization, and passenger growth.</p>
+                <h1>Revenue &amp; Operations Reports</h1>
+                <p>Real-time analytics computed directly from database trips, passenger activity, and driver performance.</p>
             </div>
             <div class="topbar-actions">
-                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+                <button type="button" class="btn-export" id="exportDriversBtn">📥 Export Drivers (CSV)</button>
+                <button type="button" class="btn-export" id="exportPassengersBtn">📥 Export Passengers (CSV)</button>
+                <button type="button" class="btn-secondary" id="printReportBtn" title="Print or save as PDF">🖨️ Print / PDF</button>
             </div>
         </header>
 
         <div class="admin-container">
+
+            <!-- ================= DATE-RANGE FILTER CARD ================= -->
+            <div class="reports-filter-card">
+                <div class="reports-filter-header">
+                    <div class="reports-filter-title">
+                        <span>📅</span> Filter Analytics &amp; Reports by Date Range
+                    </div>
+                    <div class="preset-buttons-group">
+                        <button type="button" class="btn-preset active" data-preset="all">All Time</button>
+                        <button type="button" class="btn-preset" data-preset="today">Today</button>
+                        <button type="button" class="btn-preset" data-preset="7d">Last 7 Days</button>
+                        <button type="button" class="btn-preset" data-preset="30d">Last 30 Days</button>
+                        <button type="button" class="btn-preset" data-preset="month">This Month</button>
+                    </div>
+                </div>
+
+                <div class="reports-filter-body">
+                    <div class="date-inputs-group">
+                        <div class="date-input-field">
+                            <label for="startDate">From:</label>
+                            <input type="date" id="startDate" name="startDate">
+                        </div>
+                        <div class="date-input-field">
+                            <label for="endDate">To:</label>
+                            <input type="date" id="endDate" name="endDate">
+                        </div>
+                        <button type="button" class="btn-primary" id="applyFilterBtn" style="padding: 7px 16px; font-size: 13px;">Apply Filter</button>
+                        <button type="button" class="btn-filter-reset" id="resetFilterBtn">Reset Dates</button>
+                    </div>
+                    <div class="reports-filter-status" id="filterStatusText" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">
+                        Showing all-time database metrics
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= KEY PERFORMANCE INDICATORS (KPIs) ================= -->
             <div class="stats-grid">
                 <article class="stat-card highlight">
                     <div class="stat-header">
-                        <span class="stat-title">Gross Revenue (Total)</span>
+                        <span class="stat-title">Gross Revenue (Database)</span>
                         <div class="stat-icon">💰</div>
                     </div>
-                    <div class="stat-value">₹1,195.00</div>
+                    <div class="stat-value" id="statGrossRevenue">₹0.00</div>
                     <div class="stat-meta">
-                        <span class="badge-pill badge-success">+12.5%</span>
-                        <span>vs previous period</span>
+                        <span class="badge-pill badge-success" id="statAvgFareBadge">Avg Fare: ₹0.00</span>
+                        <span id="statCancellationRevenue">₹0.00 cancel fees</span>
                     </div>
                 </article>
 
                 <article class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-title">Average Distance / Trip</span>
+                        <span class="stat-title">Completed Trips</span>
+                        <div class="stat-icon">✅</div>
+                    </div>
+                    <div class="stat-value" id="statCompletedTrips">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statCompletionRate">0%</span>
+                        <span id="statTotalTripsMeta">of 0 total trips</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Cancelled Trips</span>
+                        <div class="stat-icon">❌</div>
+                    </div>
+                    <div class="stat-value" id="statCancelledTrips">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-danger" id="statCancellationRate">0%</span>
+                        <span>Cancellation rate</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Passengers</span>
+                        <div class="stat-icon">👥</div>
+                    </div>
+                    <div class="stat-value" id="statTotalPassengers">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-info" id="statActivePassengers">0 Active</span>
+                        <span>Registered accounts</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Drivers</span>
+                        <div class="stat-icon">🚖</div>
+                    </div>
+                    <div class="stat-value" id="statTotalDrivers">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statApprovedDrivers">0 Approved</span>
+                        <span id="statPendingDrivers">0 pending</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Distance Covered</span>
                         <div class="stat-icon">🗺️</div>
                     </div>
-                    <div class="stat-value">25.2 km</div>
+                    <div class="stat-value" id="statTotalDistance">0.0 km</div>
                     <div class="stat-meta">
-                        <span>Across completed rides</span>
-                    </div>
-                </article>
-
-                <article class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-title">Avg Passenger Rating</span>
-                        <div class="stat-icon">⭐</div>
-                    </div>
-                    <div class="stat-value">4.85 / 5.0</div>
-                    <div class="stat-meta">
-                        <span class="badge-pill badge-success">High quality</span>
+                        <span id="statAvgDistance">Avg: 0.0 km / completed ride</span>
                     </div>
                 </article>
             </div>
+
+            <!-- ================= BREAKDOWN CHARTS / PROGRESS LISTS ================= -->
+            <div class="breakdown-grid">
+                <!-- Vehicle Distribution -->
+                <div class="breakdown-card">
+                    <div class="breakdown-card-title">
+                        <span>🚗 Revenue &amp; Trips by Vehicle Category</span>
+                        <span class="badge-pill badge-info" id="vehicleCountBadge">Categories</span>
+                    </div>
+                    <div id="vehicleBreakdownContainer">
+                        <p style="color: var(--text-muted); font-size: 13px;">Loading vehicle performance data...</p>
+                    </div>
+                </div>
+
+                <!-- Payment Method Distribution -->
+                <div class="breakdown-card">
+                    <div class="breakdown-card-title">
+                        <span>💳 Revenue by Payment Method</span>
+                        <span class="badge-pill badge-success" id="paymentCountBadge">Channels</span>
+                    </div>
+                    <div id="paymentBreakdownContainer">
+                        <p style="color: var(--text-muted); font-size: 13px;">Loading payment distributions...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= SECTION 1: DRIVER PERFORMANCE REPORT ================= -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Driver Performance &amp; Revenue Generation Report</h2>
+                        <p>Aggregated records of rides fulfilled, cancellations, total distance, revenue generated, and ratings.</p>
+                    </div>
+                    <button type="button" class="btn-export" id="exportDriversBtnTable">📥 Download CSV</button>
+                </div>
+
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input type="search" id="driverSearchInput" placeholder="Filter driver name, phone, license..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <span class="results-count" id="driverReportCount">Loading driver report...</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Driver Details</th>
+                                    <th>License &amp; Vehicle</th>
+                                    <th style="text-align: center;">Total Rides</th>
+                                    <th style="text-align: center;">Completed</th>
+                                    <th style="text-align: center;">Cancelled</th>
+                                    <th style="text-align: right;">Distance (km)</th>
+                                    <th style="text-align: right;">Revenue Earned</th>
+                                    <th style="text-align: center;">Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody id="driverReportTableBody">
+                                <tr>
+                                    <td colspan="8" class="empty-state-cell">Loading driver performance records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= SECTION 2: PASSENGER ACTIVITY REPORT ================= -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Passenger Activity &amp; Expenditure Report</h2>
+                        <p>Summary of bookings initiated, fulfillment rate, total passenger spend, and registration history.</p>
+                    </div>
+                    <button type="button" class="btn-export" id="exportPassengersBtnTable">📥 Download CSV</button>
+                </div>
+
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input type="search" id="passengerSearchInput" placeholder="Filter passenger name, phone, email..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <span class="results-count" id="passengerReportCount">Loading passenger report...</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Passenger Details</th>
+                                    <th>Contact</th>
+                                    <th style="text-align: center;">Total Requests</th>
+                                    <th style="text-align: center;">Completed Rides</th>
+                                    <th style="text-align: center;">Cancelled Rides</th>
+                                    <th style="text-align: right;">Total Spend</th>
+                                    <th style="text-align: center;">Status</th>
+                                    <th>Member Since</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passengerReportTableBody">
+                                <tr>
+                                    <td colspan="8" class="empty-state-cell">Loading passenger activity records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/reports.js"></script>
 </body>
 </html>
-

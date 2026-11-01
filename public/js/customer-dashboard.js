@@ -329,8 +329,47 @@ document.getElementById("refreshRidesButton")?.addEventListener(
 
 
 // ========================================
-// 7. INITIALIZE CUSTOMER DASHBOARD
+// 7. LOAD DYNAMIC FARE RULES & SERVICE AREAS
+// ========================================
+
+async function loadActiveFareRulesAndAreas() {
+    try {
+        const [faresRes, areasRes] = await Promise.allSettled([
+            fetch(`${API_BASE}/api/fare-rules`),
+            fetch(`${API_BASE}/api/service-areas`)
+        ]);
+
+        if (faresRes.status === "fulfilled" && faresRes.value.ok) {
+            const faresData = await faresRes.value.json();
+            const select = document.getElementById("vehicleType");
+            if (select && faresData.success && faresData.fare_rules && faresData.fare_rules.length > 0) {
+                const currentVal = select.value;
+                select.innerHTML = `<option value="">Select vehicle</option>` +
+                    faresData.fare_rules.map(f => {
+                        return `<option value="${f.vehicle_type}">${f.vehicle_type} (Base: ₹${f.base_fare}, ₹${f.per_km_rate}/km)</option>`;
+                    }).join("");
+                if (currentVal) select.value = currentVal;
+            }
+        }
+
+        if (areasRes.status === "fulfilled" && areasRes.value.ok) {
+            const areasData = await areasRes.value.json();
+            const datalist = document.getElementById("serviceAreasList");
+            if (datalist && areasData.success && areasData.service_areas && areasData.service_areas.length > 0) {
+                datalist.innerHTML = areasData.service_areas.map(a => {
+                    return `<option value="${a.area_name}, ${a.city}">`;
+                }).join("");
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load dynamic fare rules or service areas:", e);
+    }
+}
+
+// ========================================
+// 8. INITIALIZE CUSTOMER DASHBOARD
 // ========================================
 
 loadCustomerProfile();
 loadRideHistory();
+loadActiveFareRulesAndAreas();

@@ -54,10 +54,12 @@
             <form id="bookingForm">
 
                 <label for="pickup">Pickup Location</label>
-                <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location" required>
+                <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location or select service zone" list="serviceAreasList" required>
 
                 <label for="destination">Destination</label>
-                <input type="text" id="destination" name="destination" placeholder="Enter destination" required>
+                <input type="text" id="destination" name="destination" placeholder="Enter destination or select service zone" list="serviceAreasList" required>
+
+                <datalist id="serviceAreasList"></datalist>
 
                 <label for="rideDate">Travel Date</label>
                 <input type="date" id="rideDate" name="rideDate" required>
@@ -68,9 +70,11 @@
                 <label for="vehicleType">Vehicle Type</label>
                 <select id="vehicleType" name="vehicleType" required>
                     <option value="">Select vehicle</option>
-                    <option value="Mini">Mini</option>
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback (Base ₹50.00)</option>
+                    <option value="Sedan">Sedan (Base ₹70.00)</option>
+                    <option value="SUV">SUV (Base ₹100.00)</option>
+                    <option value="Auto">Auto (Base ₹30.00)</option>
+                    <option value="Bike">Bike (Base ₹20.00)</option>
                 </select>
 
                 <button type="submit">Request a Ride</button>

@@ -399,13 +399,29 @@ const server = http.createServer(async (req, res) => {
 
             const passengerId = passengers[0].passenger_id;
 
-            const [fareRules] = await pool.execute(
-                `SELECT base_fare
+            let normalizedType = vehicleType.trim();
+            if (normalizedType.toLowerCase() === "mini") {
+                normalizedType = "Hatchback";
+            }
+
+            let [fareRules] = await pool.execute(
+                `SELECT base_fare, per_km_rate, per_minute_rate, cancellation_fee
                  FROM fare_rules
-                 WHERE vehicle_type = ? AND status = 'active'
+                 WHERE LOWER(vehicle_type) = LOWER(?) AND status = 'active'
                  LIMIT 1`,
-                [vehicleType.trim()]
+                [normalizedType]
             );
+
+            if (fareRules.length === 0) {
+                // Fallback to first active rule
+                const [fallbackRules] = await pool.execute(
+                    `SELECT base_fare, per_km_rate, per_minute_rate, cancellation_fee
+                     FROM fare_rules
+                     WHERE status = 'active'
+                     ORDER BY fare_id ASC LIMIT 1`
+                );
+                fareRules = fallbackRules;
+            }
 
             if (fareRules.length === 0) {
                 return sendJson(res, 409, {
@@ -1089,13 +1105,23 @@ const server = http.createServer(async (req, res) => {
             const dist = parseFloat(distanceKm) > 0 ? parseFloat(distanceKm) : 5.0;
 
             const [fareRule] = await pool.execute(
-                `SELECT base_fare, per_km_rate FROM fare_rules WHERE vehicle_type = ? AND status = 'active' LIMIT 1`,
+                `SELECT base_fare, per_km_rate, per_minute_rate FROM fare_rules WHERE LOWER(vehicle_type) = LOWER(?) AND status = 'active' LIMIT 1`,
                 [trip.vehicle_type]
             );
 
             let finalFare = Number(trip.fare);
             if (fareRule.length > 0) {
-                finalFare = Number(fareRule[0].base_fare) + (dist * Number(fareRule[0].per_km_rate));
+                const base = Number(fareRule[0].base_fare);
+                const perKm = Number(fareRule[0].per_km_rate);
+                const perMin = Number(fareRule[0].per_minute_rate || 0);
+
+                let durationMinutes = 0;
+                if (trip.start_time) {
+                    const startMs = new Date(trip.start_time).getTime();
+                    const nowMs = Date.now();
+                    durationMinutes = Math.max(1, Math.round((nowMs - startMs) / 60000));
+                }
+                finalFare = Math.round((base + (dist * perKm) + (durationMinutes * perMin)) * 100) / 100;
             }
 
             const connection = await pool.getConnection();
@@ -2267,7 +2293,12 @@ const server = http.createServer(async (req, res) => {
             } else if (newStatus === "completed") {
                 timeUpdateSql = ", end_time = COALESCE(end_time, NOW())";
             } else if (newStatus === "cancelled") {
-                timeUpdateSql = ", end_time = COALESCE(end_time, NOW())";
+                const [fareRows] = await pool.execute(
+                    `SELECT cancellation_fee FROM fare_rules WHERE LOWER(vehicle_type) = (SELECT LOWER(v.vehicle_type) FROM vehicles v WHERE v.vehicle_id = ?) AND status = 'active' LIMIT 1`,
+                    [trip.vehicle_id]
+                );
+                const cancelFee = fareRows.length > 0 ? Number(fareRows[0].cancellation_fee) : 0;
+                timeUpdateSql = `, end_time = COALESCE(end_time, NOW()), fare = ${cancelFee}`;
             }
 
             updateParams.push(tripId);
@@ -2304,6 +2335,765 @@ const server = http.createServer(async (req, res) => {
                 trip_id: tripId,
                 status: newStatus,
                 previous_status: currentStatus
+            });
+        }
+
+        // ========================================================
+        // 10. PUBLIC FARE RULES & SERVICE AREAS
+        // ========================================================
+        if (req.method === "GET" && pathname === "/api/fare-rules") {
+            const [rules] = await pool.query(
+                `SELECT fare_id, vehicle_type, base_fare, per_km_rate, per_minute_rate, cancellation_fee, status
+                 FROM fare_rules
+                 WHERE status = 'active'
+                 ORDER BY fare_id ASC`
+            );
+            return sendJson(res, 200, {
+                success: true,
+                fare_rules: rules.map(r => ({
+                    ...r,
+                    base_fare: Number(r.base_fare),
+                    per_km_rate: Number(r.per_km_rate),
+                    per_minute_rate: Number(r.per_minute_rate),
+                    cancellation_fee: Number(r.cancellation_fee)
+                }))
+            });
+        }
+
+        if (req.method === "GET" && pathname === "/api/service-areas") {
+            const [areas] = await pool.query(
+                `SELECT area_id, area_name, city, state, status
+                 FROM service_areas
+                 WHERE status = 'active'
+                 ORDER BY area_name ASC`
+            );
+            return sendJson(res, 200, {
+                success: true,
+                service_areas: areas
+            });
+        }
+
+        // Customer Cancel Ride: POST /api/customers/cancel-ride or /customers/cancel-ride
+        if (req.method === "POST" && (pathname === "/api/customers/cancel-ride" || pathname === "/customers/cancel-ride")) {
+            const session = await getAuthenticatedUser(req);
+            if (!session) {
+                return sendJson(res, 401, { success: false, message: "Unauthorized. Please log in." });
+            }
+
+            const body = await readJson(req);
+            const requestId = parseInt(body.requestId || body.request_id, 10);
+            if (!requestId) {
+                return sendJson(res, 400, { success: false, message: "Valid requestId is required." });
+            }
+
+            // Verify request ownership
+            const [passengers] = await pool.execute(
+                `SELECT passenger_id FROM passenger_profiles WHERE user_id = ?`,
+                [session.user_id]
+            );
+            if (passengers.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Passenger profile not found." });
+            }
+            const passengerId = passengers[0].passenger_id;
+
+            const [reqRows] = await pool.execute(
+                `SELECT request_id, passenger_id, vehicle_type, status FROM ride_requests WHERE request_id = ? AND passenger_id = ?`,
+                [requestId, passengerId]
+            );
+            if (reqRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Ride request not found or not owned by you." });
+            }
+
+            const ride = reqRows[0];
+            if (ride.status === "completed" || ride.status === "cancelled") {
+                return sendJson(res, 400, { success: false, message: `Ride request is already ${ride.status}.` });
+            }
+
+            // Check cancellation fee
+            const [fareRule] = await pool.execute(
+                `SELECT cancellation_fee FROM fare_rules WHERE LOWER(vehicle_type) = LOWER(?) AND status = 'active' LIMIT 1`,
+                [ride.vehicle_type || "Sedan"]
+            );
+            const cancelFee = fareRule.length > 0 ? Number(fareRule[0].cancellation_fee) : 0;
+
+            await pool.execute(
+                `UPDATE ride_requests SET status = 'cancelled' WHERE request_id = ?`,
+                [requestId]
+            );
+
+            // If there's an assigned or started trip, cancel it with fee
+            const [trips] = await pool.execute(
+                `SELECT trip_id FROM trips WHERE request_id = ?`,
+                [requestId]
+            );
+            if (trips.length > 0) {
+                await pool.execute(
+                    `UPDATE trips SET trip_status = 'cancelled', end_time = NOW(), fare = ? WHERE request_id = ?`,
+                    [cancelFee, requestId]
+                );
+            }
+
+            await logActivity(
+                session.user_id,
+                "RIDE_CANCELLED",
+                `Passenger cancelled ride #${requestId}. Cancellation fee: ₹${cancelFee}.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Ride #${requestId} cancelled successfully.` + (cancelFee > 0 ? ` Cancellation fee applicable: ₹${cancelFee.toFixed(2)}` : ""),
+                cancellation_fee: cancelFee
+            });
+        }
+
+        // ========================================================
+        // 11. ADMIN FARE RULES MANAGEMENT
+        // ========================================================
+        // 11a. GET /api/admin/fare-rules
+        if (req.method === "GET" && pathname === "/api/admin/fare-rules") {
+            const [rules] = await pool.query(
+                `SELECT fare_id, vehicle_type, base_fare, per_km_rate, per_minute_rate, cancellation_fee, status
+                 FROM fare_rules
+                 ORDER BY fare_id ASC`
+            );
+
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_count,
+                    COALESCE(SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END), 0) AS inactive_count
+                 FROM fare_rules`
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                fare_rules: rules.map(r => ({
+                    ...r,
+                    base_fare: Number(r.base_fare),
+                    per_km_rate: Number(r.per_km_rate),
+                    per_minute_rate: Number(r.per_minute_rate),
+                    cancellation_fee: Number(r.cancellation_fee)
+                })),
+                summary: {
+                    total: Number(summaryRows[0].total || 0),
+                    active: Number(summaryRows[0].active_count || 0),
+                    inactive: Number(summaryRows[0].inactive_count || 0)
+                }
+            });
+        }
+
+        // 11b. POST /api/admin/fare-rules - Add new fare rule
+        if (req.method === "POST" && pathname === "/api/admin/fare-rules") {
+            const body = await readJson(req);
+            const vehicleType = (body.vehicle_type || "").trim();
+            const baseFare = parseFloat(body.base_fare);
+            const perKmRate = parseFloat(body.per_km_rate);
+            const perMinuteRate = parseFloat(body.per_minute_rate !== undefined ? body.per_minute_rate : 0);
+            const cancellationFee = parseFloat(body.cancellation_fee !== undefined ? body.cancellation_fee : 0);
+            const status = (body.status || "active").toLowerCase() === "inactive" ? "inactive" : "active";
+
+            if (!vehicleType) {
+                return sendJson(res, 400, { success: false, message: "Vehicle type is required." });
+            }
+            if (isNaN(baseFare) || baseFare < 0) {
+                return sendJson(res, 400, { success: false, message: "Base fare must be a non-negative number." });
+            }
+            if (isNaN(perKmRate) || perKmRate < 0) {
+                return sendJson(res, 400, { success: false, message: "Per kilometre rate must be a non-negative number." });
+            }
+            if (isNaN(perMinuteRate) || perMinuteRate < 0) {
+                return sendJson(res, 400, { success: false, message: "Per minute rate must be a non-negative number." });
+            }
+            if (isNaN(cancellationFee) || cancellationFee < 0) {
+                return sendJson(res, 400, { success: false, message: "Cancellation fee must be a non-negative number." });
+            }
+
+            const [result] = await pool.execute(
+                `INSERT INTO fare_rules (vehicle_type, base_fare, per_km_rate, per_minute_rate, cancellation_fee, status)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [vehicleType, baseFare, perKmRate, perMinuteRate, cancellationFee, status]
+            );
+
+            await logActivity(
+                null,
+                "FARE_RULE_CREATED",
+                `Created fare rule #${result.insertId} for vehicle type '${vehicleType}' (Base: ₹${baseFare}, PerKm: ₹${perKmRate}, PerMin: ₹${perMinuteRate}, CancelFee: ₹${cancellationFee}).`,
+                clientIp
+            );
+
+            return sendJson(res, 201, {
+                success: true,
+                message: `Fare rule for '${vehicleType}' created successfully.`,
+                fare_id: result.insertId
+            });
+        }
+
+        // 11c. PATCH /api/admin/fare-rules/:id/status - Toggle or update status
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/fare-rules\/\d+\/status$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const fareId = parseInt(parts[3], 10);
+            const body = await readJson(req).catch(() => ({}));
+
+            const [rules] = await pool.execute(
+                `SELECT fare_id, vehicle_type, status FROM fare_rules WHERE fare_id = ?`,
+                [fareId]
+            );
+            if (rules.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Fare rule not found." });
+            }
+
+            const current = rules[0];
+            let newStatus = body.status ? body.status.toLowerCase().trim() : (current.status === "active" ? "inactive" : "active");
+            if (newStatus !== "active" && newStatus !== "inactive") {
+                newStatus = "active";
+            }
+
+            await pool.execute(
+                `UPDATE fare_rules SET status = ? WHERE fare_id = ?`,
+                [newStatus, fareId]
+            );
+
+            await logActivity(
+                null,
+                "FARE_RULE_STATUS_CHANGED",
+                `Fare rule #${fareId} (${current.vehicle_type}) status changed from '${current.status}' to '${newStatus}'.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Fare rule #${fareId} is now ${newStatus}.`,
+                fare_id: fareId,
+                status: newStatus
+            });
+        }
+
+        // 11d. PATCH /api/admin/fare-rules/:id - Edit fare rule
+        if ((req.method === "PATCH" || req.method === "PUT") && pathname.match(/^\/api\/admin\/fare-rules\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const fareId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+
+            const [rules] = await pool.execute(
+                `SELECT * FROM fare_rules WHERE fare_id = ?`,
+                [fareId]
+            );
+            if (rules.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Fare rule not found." });
+            }
+            const existing = rules[0];
+
+            const vehicleType = body.vehicle_type !== undefined ? body.vehicle_type.trim() : existing.vehicle_type;
+            const baseFare = body.base_fare !== undefined ? parseFloat(body.base_fare) : Number(existing.base_fare);
+            const perKmRate = body.per_km_rate !== undefined ? parseFloat(body.per_km_rate) : Number(existing.per_km_rate);
+            const perMinuteRate = body.per_minute_rate !== undefined ? parseFloat(body.per_minute_rate) : Number(existing.per_minute_rate);
+            const cancellationFee = body.cancellation_fee !== undefined ? parseFloat(body.cancellation_fee) : Number(existing.cancellation_fee);
+            const status = body.status !== undefined ? (body.status.toLowerCase() === "inactive" ? "inactive" : "active") : existing.status;
+
+            if (isNaN(baseFare) || baseFare < 0) {
+                return sendJson(res, 400, { success: false, message: "Base fare must be a non-negative number." });
+            }
+            if (isNaN(perKmRate) || perKmRate < 0) {
+                return sendJson(res, 400, { success: false, message: "Per kilometre rate must be a non-negative number." });
+            }
+            if (isNaN(perMinuteRate) || perMinuteRate < 0) {
+                return sendJson(res, 400, { success: false, message: "Per minute rate must be a non-negative number." });
+            }
+            if (isNaN(cancellationFee) || cancellationFee < 0) {
+                return sendJson(res, 400, { success: false, message: "Cancellation fee must be a non-negative number." });
+            }
+
+            await pool.execute(
+                `UPDATE fare_rules 
+                 SET vehicle_type = ?, base_fare = ?, per_km_rate = ?, per_minute_rate = ?, cancellation_fee = ?, status = ?
+                 WHERE fare_id = ?`,
+                [vehicleType, baseFare, perKmRate, perMinuteRate, cancellationFee, status, fareId]
+            );
+
+            await logActivity(
+                null,
+                "FARE_RULE_UPDATED",
+                `Updated fare rule #${fareId} for '${vehicleType}': Base ₹${baseFare}, PerKm ₹${perKmRate}, PerMin ₹${perMinuteRate}, Cancel ₹${cancellationFee}, Status: ${status}.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Fare rule #${fareId} updated successfully. Future bookings will immediately use these rates.`,
+                fare_id: fareId
+            });
+        }
+
+        // ========================================================
+        // 12. ADMIN SERVICE AREAS MANAGEMENT
+        // ========================================================
+        // 12a. GET /api/admin/service-areas
+        if (req.method === "GET" && pathname === "/api/admin/service-areas") {
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+            const status = (parsedUrl.searchParams.get("status") || "all").trim().toLowerCase();
+
+            const whereClauses = ["1=1"];
+            const params = [];
+
+            if (status && status !== "all") {
+                whereClauses.push("status = ?");
+                params.push(status);
+            }
+
+            if (search) {
+                whereClauses.push("(area_name LIKE ? OR city LIKE ? OR state LIKE ?)");
+                const pat = `%${search}%`;
+                params.push(pat, pat, pat);
+            }
+
+            const whereSql = "WHERE " + whereClauses.join(" AND ");
+
+            const [areas] = await pool.query(
+                `SELECT area_id, area_name, city, state, status
+                 FROM service_areas
+                 ${whereSql}
+                 ORDER BY area_id ASC`,
+                params
+            );
+
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_count,
+                    COALESCE(SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END), 0) AS inactive_count
+                 FROM service_areas`
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                service_areas: areas,
+                summary: {
+                    total: Number(summaryRows[0].total || 0),
+                    active: Number(summaryRows[0].active_count || 0),
+                    inactive: Number(summaryRows[0].inactive_count || 0)
+                }
+            });
+        }
+
+        // 12b. POST /api/admin/service-areas - Add service area
+        if (req.method === "POST" && pathname === "/api/admin/service-areas") {
+            const body = await readJson(req);
+            const areaName = (body.area_name || "").trim();
+            const city = (body.city || "").trim();
+            const state = (body.state || "").trim();
+            const status = (body.status || "active").toLowerCase() === "inactive" ? "inactive" : "active";
+
+            if (!areaName) {
+                return sendJson(res, 400, { success: false, message: "Area name is required." });
+            }
+            if (!city) {
+                return sendJson(res, 400, { success: false, message: "City is required." });
+            }
+            if (!state) {
+                return sendJson(res, 400, { success: false, message: "State is required." });
+            }
+
+            const [result] = await pool.execute(
+                `INSERT INTO service_areas (area_name, city, state, status) VALUES (?, ?, ?, ?)`,
+                [areaName, city, state, status]
+            );
+
+            await logActivity(
+                null,
+                "SERVICE_AREA_CREATED",
+                `Created service area #${result.insertId}: '${areaName}', ${city}, ${state} (Status: ${status}).`,
+                clientIp
+            );
+
+            return sendJson(res, 201, {
+                success: true,
+                message: `Service area '${areaName}' added successfully.`,
+                area_id: result.insertId
+            });
+        }
+
+        // 12c. PATCH /api/admin/service-areas/:id/status - Toggle or update status
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/service-areas\/\d+\/status$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const areaId = parseInt(parts[3], 10);
+            const body = await readJson(req).catch(() => ({}));
+
+            const [areas] = await pool.execute(
+                `SELECT area_id, area_name, status FROM service_areas WHERE area_id = ?`,
+                [areaId]
+            );
+            if (areas.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Service area not found." });
+            }
+
+            const current = areas[0];
+            let newStatus = body.status ? body.status.toLowerCase().trim() : (current.status === "active" ? "inactive" : "active");
+            if (newStatus !== "active" && newStatus !== "inactive") {
+                newStatus = "active";
+            }
+
+            await pool.execute(
+                `UPDATE service_areas SET status = ? WHERE area_id = ?`,
+                [newStatus, areaId]
+            );
+
+            await logActivity(
+                null,
+                "SERVICE_AREA_STATUS_CHANGED",
+                `Service area #${areaId} ('${current.area_name}') status toggled from '${current.status}' to '${newStatus}'.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Service area '${current.area_name}' is now ${newStatus}.`,
+                area_id: areaId,
+                status: newStatus
+            });
+        }
+
+        // 12d. PATCH /api/admin/service-areas/:id - Edit service area
+        if ((req.method === "PATCH" || req.method === "PUT") && pathname.match(/^\/api\/admin\/service-areas\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const areaId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+
+            const [areas] = await pool.execute(
+                `SELECT * FROM service_areas WHERE area_id = ?`,
+                [areaId]
+            );
+            if (areas.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Service area not found." });
+            }
+            const existing = areas[0];
+
+            const areaName = body.area_name !== undefined ? body.area_name.trim() : existing.area_name;
+            const city = body.city !== undefined ? body.city.trim() : existing.city;
+            const state = body.state !== undefined ? body.state.trim() : existing.state;
+            const status = body.status !== undefined ? (body.status.toLowerCase() === "inactive" ? "inactive" : "active") : existing.status;
+
+            if (!areaName) {
+                return sendJson(res, 400, { success: false, message: "Area name cannot be empty." });
+            }
+            if (!city) {
+                return sendJson(res, 400, { success: false, message: "City cannot be empty." });
+            }
+            if (!state) {
+                return sendJson(res, 400, { success: false, message: "State cannot be empty." });
+            }
+
+            await pool.execute(
+                `UPDATE service_areas SET area_name = ?, city = ?, state = ?, status = ? WHERE area_id = ?`,
+                [areaName, city, state, status, areaId]
+            );
+
+            await logActivity(
+                null,
+                "SERVICE_AREA_UPDATED",
+                `Updated service area #${areaId}: '${areaName}', ${city}, ${state} (Status: ${status}).`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Service area #${areaId} updated successfully.`,
+                area_id: areaId
+            });
+        }
+
+        // ========================================================
+        // 13. REPORTS & ANALYTICS
+        // ========================================================
+        // 13a. GET /api/admin/reports/analytics & /api/admin/reports - Summary metrics & KPIs
+        if (req.method === "GET" && (pathname === "/api/admin/reports/analytics" || pathname === "/api/admin/reports")) {
+            const startDate = (parsedUrl.searchParams.get("startDate") || "").trim();
+            const endDate = (parsedUrl.searchParams.get("endDate") || "").trim();
+
+            const tripWhere = ["1=1"];
+            const tripParams = [];
+            if (startDate) {
+                tripWhere.push("DATE(COALESCE(t.start_time, t.end_time, NOW())) >= ?");
+                tripParams.push(startDate);
+            }
+            if (endDate) {
+                tripWhere.push("DATE(COALESCE(t.start_time, t.end_time, NOW())) <= ?");
+                tripParams.push(endDate);
+            }
+            const tripWhereSql = "WHERE " + tripWhere.join(" AND ");
+
+            // Trips & Revenue in range
+            const [tripMetrics] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_trips,
+                    COALESCE(SUM(CASE WHEN trip_status IN ('assigned', 'started') THEN 1 ELSE 0 END), 0) AS active_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'completed' THEN fare ELSE 0 END), 0) AS gross_revenue,
+                    COALESCE(SUM(CASE WHEN trip_status = 'cancelled' THEN fare ELSE 0 END), 0) AS cancellation_revenue,
+                    COALESCE(SUM(distance_km), 0) AS total_distance_km
+                 FROM trips t
+                 ${tripWhereSql}`,
+                tripParams
+            );
+
+            // User statistics
+            const [passengersRes] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_passengers,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_passengers,
+                    COALESCE(SUM(CASE WHEN status != 'active' THEN 1 ELSE 0 END), 0) AS inactive_passengers
+                 FROM users WHERE role IN ('passenger', 'customer')`
+            );
+
+            const [driversRes] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_drivers,
+                    COALESCE(SUM(CASE WHEN dp.verification_status = 'approved' THEN 1 ELSE 0 END), 0) AS approved_drivers,
+                    COALESCE(SUM(CASE WHEN dp.verification_status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_drivers,
+                    COALESCE(SUM(CASE WHEN dp.verification_status = 'suspended' THEN 1 ELSE 0 END), 0) AS suspended_drivers
+                 FROM users u
+                 JOIN driver_profiles dp ON u.user_id = dp.user_id
+                 WHERE u.role = 'driver'`
+            );
+
+            // Vehicle Category Distribution in range
+            const [vehicleDist] = await pool.query(
+                `SELECT 
+                    v.vehicle_type,
+                    COUNT(t.trip_id) AS trip_count,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN t.fare ELSE 0 END), 0) AS total_revenue
+                 FROM trips t
+                 JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+                 ${tripWhereSql}
+                 GROUP BY v.vehicle_type
+                 ORDER BY total_revenue DESC`,
+                tripParams
+            );
+
+            // Payment Method Breakdown in range
+            const [paymentDist] = await pool.query(
+                `SELECT 
+                    COALESCE(p.payment_method, 'other') AS payment_method,
+                    COUNT(p.payment_id) AS payment_count,
+                    COALESCE(SUM(p.amount), 0) AS total_amount
+                 FROM payments p
+                 JOIN trips t ON p.trip_id = t.trip_id
+                 ${tripWhereSql}
+                 GROUP BY p.payment_method
+                 ORDER BY total_amount DESC`,
+                tripParams
+            );
+
+            const metrics = tripMetrics[0];
+            const completedCount = Number(metrics.completed_trips || 0);
+            const cancelledCount = Number(metrics.cancelled_trips || 0);
+            const totalTripsCount = Number(metrics.total_trips || 0);
+            const grossRev = Number(metrics.gross_revenue || 0);
+            const cancelRev = Number(metrics.cancellation_revenue || 0);
+            const totalDistance = Number(metrics.total_distance_km || 0);
+
+            const completionRate = totalTripsCount > 0 ? Math.round((completedCount / totalTripsCount) * 1000) / 10 : 0;
+            const cancellationRate = totalTripsCount > 0 ? Math.round((cancelledCount / totalTripsCount) * 1000) / 10 : 0;
+            const avgFare = completedCount > 0 ? Math.round((grossRev / completedCount) * 100) / 100 : 0;
+            const avgDistance = completedCount > 0 ? Math.round((totalDistance / completedCount) * 100) / 100 : 0;
+
+            return sendJson(res, 200, {
+                success: true,
+                filter: {
+                    startDate: startDate || null,
+                    endDate: endDate || null
+                },
+                passengers: {
+                    total: Number(passengersRes[0].total_passengers || 0),
+                    active: Number(passengersRes[0].active_passengers || 0),
+                    inactive: Number(passengersRes[0].inactive_passengers || 0)
+                },
+                drivers: {
+                    total: Number(driversRes[0].total_drivers || 0),
+                    approved: Number(driversRes[0].approved_drivers || 0),
+                    pending: Number(driversRes[0].pending_drivers || 0),
+                    suspended: Number(driversRes[0].suspended_drivers || 0)
+                },
+                trips: {
+                    total: totalTripsCount,
+                    completed: completedCount,
+                    cancelled: cancelledCount,
+                    active: Number(metrics.active_trips || 0),
+                    completion_rate: completionRate,
+                    cancellation_rate: cancellationRate,
+                    total_distance_km: totalDistance,
+                    average_distance_km: avgDistance
+                },
+                revenue: {
+                    gross_revenue: grossRev,
+                    cancellation_revenue: cancelRev,
+                    net_revenue: grossRev + cancelRev,
+                    average_fare: avgFare
+                },
+                vehicle_distribution: vehicleDist.map(v => ({
+                    vehicle_type: v.vehicle_type,
+                    trip_count: Number(v.trip_count),
+                    revenue: Number(v.total_revenue)
+                })),
+                payment_distribution: paymentDist.map(p => ({
+                    method: p.payment_method,
+                    count: Number(p.payment_count),
+                    amount: Number(p.total_amount)
+                }))
+            });
+        }
+
+        // 13b. GET /api/admin/reports/drivers - Driver performance report
+        if (req.method === "GET" && pathname === "/api/admin/reports/drivers") {
+            const startDate = (parsedUrl.searchParams.get("startDate") || "").trim();
+            const endDate = (parsedUrl.searchParams.get("endDate") || "").trim();
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+
+            const tripDateClauses = [];
+            const tripParams = [];
+            if (startDate) {
+                tripDateClauses.push("DATE(COALESCE(t.start_time, t.end_time, NOW())) >= ?");
+                tripParams.push(startDate);
+            }
+            if (endDate) {
+                tripDateClauses.push("DATE(COALESCE(t.start_time, t.end_time, NOW())) <= ?");
+                tripParams.push(endDate);
+            }
+
+            const tripDateSql = tripDateClauses.length > 0 ? "AND " + tripDateClauses.join(" AND ") : "";
+
+            const driverWhere = ["u.role = 'driver'"];
+            const driverParams = [];
+            if (search) {
+                driverWhere.push("(u.name LIKE ? OR u.mobile LIKE ? OR u.email LIKE ? OR dp.license_no LIKE ?)");
+                const pat = `%${search}%`;
+                driverParams.push(pat, pat, pat, pat);
+            }
+
+            const driverWhereSql = "WHERE " + driverWhere.join(" AND ");
+
+            const querySql = `
+                SELECT 
+                    dp.driver_id,
+                    u.user_id,
+                    u.name AS driver_name,
+                    u.email AS driver_email,
+                    u.mobile AS driver_mobile,
+                    dp.license_no,
+                    dp.verification_status,
+                    dp.rating,
+                    COALESCE(v.vehicle_number, 'N/A') AS vehicle_number,
+                    COALESCE(v.vehicle_type, 'N/A') AS vehicle_type,
+                    COUNT(t.trip_id) AS total_trips,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_trips,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_trips,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN t.distance_km ELSE 0 END), 0) AS total_distance_km,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN t.fare ELSE 0 END), 0) AS total_earnings
+                FROM driver_profiles dp
+                JOIN users u ON dp.user_id = u.user_id
+                LEFT JOIN vehicles v ON dp.driver_id = v.driver_id
+                LEFT JOIN trips t ON dp.driver_id = t.driver_id ${tripDateSql}
+                ${driverWhereSql}
+                GROUP BY dp.driver_id, u.user_id, u.name, u.email, u.mobile, dp.license_no, dp.verification_status, dp.rating, v.vehicle_number, v.vehicle_type
+                ORDER BY total_earnings DESC, completed_trips DESC
+            `;
+
+            const [driverRows] = await pool.query(querySql, [...tripParams, ...driverParams]);
+
+            return sendJson(res, 200, {
+                success: true,
+                filter: { startDate: startDate || null, endDate: endDate || null },
+                drivers: driverRows.map(d => ({
+                    driver_id: d.driver_id,
+                    user_id: d.user_id,
+                    name: d.driver_name,
+                    email: d.driver_email,
+                    mobile: d.driver_mobile,
+                    license_no: d.license_no,
+                    verification_status: d.verification_status,
+                    rating: Number(d.rating),
+                    vehicle_number: d.vehicle_number,
+                    vehicle_type: d.vehicle_type,
+                    total_trips: Number(d.total_trips),
+                    completed_trips: Number(d.completed_trips),
+                    cancelled_trips: Number(d.cancelled_trips),
+                    total_distance_km: Number(d.total_distance_km),
+                    total_earnings: Number(d.total_earnings),
+                    completion_rate: Number(d.total_trips) > 0 
+                        ? Math.round((Number(d.completed_trips) / Number(d.total_trips)) * 100) 
+                        : 0
+                }))
+            });
+        }
+
+        // 13c. GET /api/admin/reports/passengers - Passenger activity report
+        if (req.method === "GET" && pathname === "/api/admin/reports/passengers") {
+            const startDate = (parsedUrl.searchParams.get("startDate") || "").trim();
+            const endDate = (parsedUrl.searchParams.get("endDate") || "").trim();
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+
+            const reqDateClauses = [];
+            const reqDateParams = [];
+            if (startDate) {
+                reqDateClauses.push("DATE(r.requested_at) >= ?");
+                reqDateParams.push(startDate);
+            }
+            if (endDate) {
+                reqDateClauses.push("DATE(r.requested_at) <= ?");
+                reqDateParams.push(endDate);
+            }
+            const reqDateSql = reqDateClauses.length > 0 ? "AND " + reqDateClauses.join(" AND ") : "";
+
+            const passWhere = ["u.role IN ('passenger', 'customer')"];
+            const passParams = [];
+            if (search) {
+                passWhere.push("(u.name LIKE ? OR u.mobile LIKE ? OR u.email LIKE ?)");
+                const pat = `%${search}%`;
+                passParams.push(pat, pat, pat);
+            }
+            const passWhereSql = "WHERE " + passWhere.join(" AND ");
+
+            const querySql = `
+                SELECT 
+                    pp.passenger_id,
+                    u.user_id,
+                    u.name AS passenger_name,
+                    u.email AS passenger_email,
+                    u.mobile AS passenger_mobile,
+                    u.status,
+                    DATE_FORMAT(u.created_at, '%b %d, %Y') AS member_since,
+                    COUNT(DISTINCT r.request_id) AS total_requests,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_rides,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'cancelled' OR r.status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_rides,
+                    COALESCE(SUM(CASE WHEN t.trip_status = 'completed' THEN t.fare ELSE 0 END), 0) AS total_spend
+                FROM passenger_profiles pp
+                JOIN users u ON pp.user_id = u.user_id
+                LEFT JOIN ride_requests r ON pp.passenger_id = r.passenger_id ${reqDateSql}
+                LEFT JOIN trips t ON r.request_id = t.request_id
+                ${passWhereSql}
+                GROUP BY pp.passenger_id, u.user_id, u.name, u.email, u.mobile, u.status, u.created_at
+                ORDER BY total_spend DESC, total_requests DESC
+            `;
+
+            const [passengerRows] = await pool.query(querySql, [...reqDateParams, ...passParams]);
+
+            return sendJson(res, 200, {
+                success: true,
+                filter: { startDate: startDate || null, endDate: endDate || null },
+                passengers: passengerRows.map(p => ({
+                    passenger_id: p.passenger_id,
+                    user_id: p.user_id,
+                    name: p.passenger_name,
+                    email: p.passenger_email,
+                    mobile: p.passenger_mobile,
+                    status: p.status,
+                    member_since: p.member_since,
+                    total_requests: Number(p.total_requests),
+                    completed_rides: Number(p.completed_rides),
+                    cancelled_rides: Number(p.cancelled_rides),
+                    total_spend: Number(p.total_spend)
+                }))
             });
         }
 
