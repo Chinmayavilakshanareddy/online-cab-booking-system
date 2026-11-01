@@ -8,6 +8,7 @@
 </head>
 <body>
 
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
@@ -36,100 +37,243 @@
             </a>
             <a href="manage-trips.html" class="nav-item">
                 <span class="icon">🗺️</span>
-                <span>Trips & Bookings</span>
+                <span>Trips &amp; Bookings</span>
             </a>
 
-            <div class="nav-section-title">Pricing & Insights</div>
+            <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
                 <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
                 <span class="icon">📈</span>
-                <span>Reports & Analytics</span>
+                <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar">AD</div>
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
                 <div class="user-details">
-                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
             </div>
         </div>
     </aside>
 
+    <!-- ================= MAIN CONTENT ================= -->
     <main class="admin-main">
         <header class="admin-topbar">
             <div class="page-headline">
                 <h1>Vehicle Fleet Management</h1>
-                <p>Register and inspect vehicles, assign models, and maintain fleet safety.</p>
+                <p>Register vehicles, edit details, and control fleet status (active / inactive / maintenance).</p>
             </div>
             <div class="topbar-actions">
-                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+                <button class="btn-secondary" id="refreshBtn" title="Refresh">
+                    <span>🔄</span> Refresh
+                </button>
+                <button class="btn-primary" id="addVehicleBtn" title="Register a new vehicle">
+                    <span>＋</span> Add Vehicle
+                </button>
+                <a href="admin-dashboard.html" class="btn-secondary">← Dashboard</a>
             </div>
         </header>
 
         <div class="admin-container">
+
+            <!-- KPI Cards -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Vehicles</span>
+                        <div class="stat-icon-wrap icon-primary">🚗</div>
+                    </div>
+                    <div class="stat-value" id="statTotalVehicles">-</div>
+                    <div class="stat-meta">Registered in fleet</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active</span>
+                        <div class="stat-icon-wrap icon-success">✅</div>
+                    </div>
+                    <div class="stat-value" id="statActiveVehicles">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-success">Available</span> Ready to accept trips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Inactive</span>
+                        <div class="stat-icon-wrap icon-warning">⏸️</div>
+                    </div>
+                    <div class="stat-value" id="statInactiveVehicles">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-warning">Off-duty</span> Not accepting trips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Under Maintenance</span>
+                        <div class="stat-icon-wrap icon-danger">🔧</div>
+                    </div>
+                    <div class="stat-value" id="statMaintenanceVehicles">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-danger">In Service</span> Undergoing repairs</div>
+                </div>
+            </section>
+
+            <!-- Table Card -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title-group">
-                        <h2>Fleet Roster</h2>
-                        <p>Cabs, autos, and commercial vehicles registered in RideNow.</p>
+                        <h2 id="vehiclesTableHeading">All Registered Vehicles</h2>
+                        <p id="vehiclesSubtitle">Showing vehicles registered on the RideNow platform.</p>
                     </div>
                 </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input
+                                type="search"
+                                id="searchInput"
+                                class="input-control"
+                                placeholder="Search by plate, model, driver name…"
+                                aria-label="Search vehicles"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <select id="statusFilter" class="select-control" aria-label="Filter by vehicle status">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="under_maintenance">Under Maintenance</option>
+                        </select>
+                        <select id="typeFilter" class="select-control" aria-label="Filter by vehicle type">
+                            <option value="all">All Types</option>
+                            <option value="Sedan">Sedan</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Auto">Auto</option>
+                            <option value="Bike">Bike</option>
+                            <option value="Premium">Premium</option>
+                        </select>
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">
+                            <span>✕</span> Reset
+                        </button>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <select id="limitFilter" class="select-control" aria-label="Items per page">
+                            <option value="5">5 per page</option>
+                            <option value="10" selected>10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div tabindex="0" role="region" aria-labelledby="vehiclesTableHeading" class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Plate Number</th>
-                                    <th>Category</th>
-                                    <th>Model</th>
-                                    <th>Capacity</th>
-                                    <th>Fleet Status</th>
+                                    <th scope="col" style="min-width:130px;">Plate Number</th>
+                                    <th scope="col" style="min-width:100px;">Type</th>
+                                    <th scope="col" style="min-width:130px;">Model</th>
+                                    <th scope="col" style="min-width:80px;">Seats</th>
+                                    <th scope="col" style="min-width:180px;">Assigned Driver</th>
+                                    <th scope="col" style="min-width:100px;">Trips</th>
+                                    <th scope="col" style="min-width:120px;">Status</th>
+                                    <th scope="col" style="text-align:center; min-width:160px;">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="vehiclesList">
                                 <tr>
-                                    <td><strong>KA-01-MJ-1234</strong></td>
-                                    <td>Sedan</td>
-                                    <td>Honda City</td>
-                                    <td>4 Seater</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>KA-03-AB-5678</strong></td>
-                                    <td>SUV</td>
-                                    <td>Toyota Innova</td>
-                                    <td>6 Seater</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>KA-05-CD-9012</strong></td>
-                                    <td>Hatchback</td>
-                                    <td>Maruti Swift</td>
-                                    <td>4 Seater</td>
-                                    <td><span class="badge-pill badge-success">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>KA-02-EF-3456</strong></td>
-                                    <td>Sedan</td>
-                                    <td>Hyundai Verna</td>
-                                    <td>4 Seater</td>
-                                    <td><span class="badge-pill badge-warning">Inactive</span></td>
+                                    <td colspan="8" class="empty-state">
+                                        <span class="loading-spinner"></span> Loading vehicles from database…
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- Pagination -->
+                <div class="table-pagination" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 vehicles</div>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
             </div>
+
         </div>
     </main>
 
+    <!-- ================= ADD / EDIT VEHICLE MODAL ================= -->
+    <div id="vehicleModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Vehicle</h2>
+                <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
+            </div>
+            <form id="vehicleForm" novalidate>
+                <input type="hidden" id="editVehicleId">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fVehicleNumber">Registration Number <span class="req">*</span></label>
+                        <input type="text" id="fVehicleNumber" class="input-control" placeholder="e.g. KA-01-MJ-1234" maxlength="30" required>
+                        <div class="field-hint">Format: State-RTO-Series-Number</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fVehicleType">Vehicle Type <span class="req">*</span></label>
+                        <select id="fVehicleType" class="select-control" required>
+                            <option value="">— Select Type —</option>
+                            <option value="Sedan">Sedan</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Auto">Auto</option>
+                            <option value="Bike">Bike</option>
+                            <option value="Premium">Premium</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fModel">Model Name <span class="req">*</span></label>
+                        <input type="text" id="fModel" class="input-control" placeholder="e.g. Honda City" maxlength="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fCapacity">Seating Capacity <span class="req">*</span></label>
+                        <input type="number" id="fCapacity" class="input-control" placeholder="e.g. 4" min="1" max="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fDriverId">Assign to Driver <span class="req">*</span></label>
+                        <select id="fDriverId" class="select-control" required>
+                            <option value="">— Loading drivers… —</option>
+                        </select>
+                        <div class="field-hint">Only approved drivers are listed</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fStatus">Fleet Status <span class="req">*</span></label>
+                        <select id="fStatus" class="select-control" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="under_maintenance">Under Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p id="formError" class="form-error" role="alert" style="display:none;"></p>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="modalCancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="formSubmitBtn">Save Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/manage-vehicles.js"></script>
 </body>
 </html>
-

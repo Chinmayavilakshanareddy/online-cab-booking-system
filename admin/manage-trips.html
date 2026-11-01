@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Trips & Bookings | RideNow Admin</title>
+    <title>Manage Trips &amp; Bookings | RideNow Admin</title>
     <link rel="stylesheet" href="../public/css/admin.css">
 </head>
 <body>
 
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
@@ -36,110 +37,169 @@
             </a>
             <a href="manage-trips.html" class="nav-item active">
                 <span class="icon">🗺️</span>
-                <span>Trips & Bookings</span>
+                <span>Trips &amp; Bookings</span>
             </a>
 
-            <div class="nav-section-title">Pricing & Insights</div>
+            <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
                 <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
                 <span class="icon">📈</span>
-                <span>Reports & Analytics</span>
+                <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar">AD</div>
+                <div class="user-avatar" id="adminUserAvatar">AD</div>
                 <div class="user-details">
-                    <div class="user-name">Arthur Dent (Admin)</div>
+                    <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
             </div>
         </div>
     </aside>
 
+    <!-- ================= MAIN CONTENT ================= -->
     <main class="admin-main">
         <header class="admin-topbar">
             <div class="page-headline">
-                <h1>Trip & Booking Management</h1>
-                <p>Monitor live rides, audit completed trips, and inspect fares.</p>
+                <h1>Trip &amp; Booking Management</h1>
+                <p>Monitor live rides, audit completed trips, inspect fare calculations, and resolve booking issues.</p>
             </div>
             <div class="topbar-actions">
-                <a href="admin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+                <button class="btn-secondary" id="refreshBtn" title="Refresh">
+                    <span>🔄</span> Refresh
+                </button>
+                <a href="admin-dashboard.html" class="btn-secondary">← Dashboard</a>
             </div>
         </header>
 
         <div class="admin-container">
+
+            <!-- KPI Cards -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Trips</span>
+                        <div class="stat-icon-wrap icon-primary">🗺️</div>
+                    </div>
+                    <div class="stat-value" id="statTotalTrips">-</div>
+                    <div class="stat-meta">All-time booking requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">In Progress / Live</span>
+                        <div class="stat-icon-wrap icon-info">🚖</div>
+                    </div>
+                    <div class="stat-value" id="statStartedTrips">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-info">Active</span> Currently on route</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Completed</span>
+                        <div class="stat-icon-wrap icon-success">✅</div>
+                    </div>
+                    <div class="stat-value" id="statCompletedTrips">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-success">Fulfilled</span> Safely reached destination</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Cancelled</span>
+                        <div class="stat-icon-wrap icon-danger">✕</div>
+                    </div>
+                    <div class="stat-value" id="statCancelledTrips">-</div>
+                    <div class="stat-meta"><span class="badge-pill badge-danger">Aborted</span> Trip cancelled</div>
+                </div>
+            </section>
+
+            <!-- Table Card -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title-group">
-                        <h2>All Trips</h2>
-                        <p>Complete trip logs with passenger, driver, distance, and payment status.</p>
+                        <h2 id="tripsTableHeading">All Bookings &amp; Trips</h2>
+                        <p id="tripsSubtitle">Showing complete trip logs from MySQL.</p>
                     </div>
                 </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input
+                                type="search"
+                                id="searchInput"
+                                class="input-control"
+                                placeholder="Search by passenger, driver, pickup, dropoff, cab…"
+                                aria-label="Search trips"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <select id="statusFilter" class="select-control" aria-label="Filter by trip status">
+                            <option value="all">All Statuses</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="started">Started (In Progress)</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">
+                            <span>✕</span> Reset
+                        </button>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <select id="limitFilter" class="select-control" aria-label="Items per page">
+                            <option value="5">5 per page</option>
+                            <option value="10" selected>10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div tabindex="0" role="region" aria-labelledby="tripsTableHeading" class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Trip ID</th>
-                                    <th>Passenger</th>
-                                    <th>Driver</th>
-                                    <th>Route</th>
-                                    <th>Distance</th>
-                                    <th>Fare</th>
-                                    <th>Status</th>
+                                    <th scope="col" style="min-width:70px;">Trip ID</th>
+                                    <th scope="col" style="min-width:170px;">Passenger</th>
+                                    <th scope="col" style="min-width:170px;">Driver &amp; Cab</th>
+                                    <th scope="col" style="min-width:220px;">Route Details</th>
+                                    <th scope="col" style="min-width:100px;">Distance &amp; Fare</th>
+                                    <th scope="col" style="min-width:150px;">Timestamps</th>
+                                    <th scope="col" style="min-width:110px;">Status</th>
+                                    <th scope="col" style="text-align:center; min-width:150px;">Manage Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tripsList">
                                 <tr>
-                                    <td><strong>#1</strong></td>
-                                    <td>Priya Sharma</td>
-                                    <td>Ramesh Gowda</td>
-                                    <td>Indiranagar 100ft Rd → MG Road Metro</td>
-                                    <td>8.5 km</td>
-                                    <td>₹215.00</td>
-                                    <td><span class="badge-pill badge-success">Completed</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>#2</strong></td>
-                                    <td>Rahul Verma</td>
-                                    <td>Sunil Shetty</td>
-                                    <td>Koramangala 5th Block → Bangalore Airport (BLR)</td>
-                                    <td>42.0 km</td>
-                                    <td>₹980.00</td>
-                                    <td><span class="badge-pill badge-success">Completed</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>#3</strong></td>
-                                    <td>Sneha Patel</td>
-                                    <td>Mohammed Zayd</td>
-                                    <td>HSR Layout Sector 2 → Bellandur Ecospace</td>
-                                    <td>6.2 km</td>
-                                    <td>₹160.00</td>
-                                    <td><span class="badge-pill badge-info">In Progress</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>#4</strong></td>
-                                    <td>Amit Kumar</td>
-                                    <td>Ramesh Gowda</td>
-                                    <td>Whitefield Main Rd → Phoenix Marketcity</td>
-                                    <td>-</td>
-                                    <td>₹35.00</td>
-                                    <td><span class="badge-pill badge-danger">Cancelled</span></td>
+                                    <td colspan="8" class="empty-state">
+                                        <span class="loading-spinner"></span> Loading trips and bookings from database…
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- Pagination -->
+                <div class="table-pagination" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 trips</div>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
             </div>
+
         </div>
     </main>
 
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/manage-trips.js"></script>
 </body>
 </html>
-

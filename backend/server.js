@@ -811,6 +811,583 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
+        // =========================================================================
+        // 8. Vehicle Management Routes
+        // =========================================================================
+
+        // 8a. GET /api/admin/vehicles - List all vehicles with filters and pagination
+        if (req.method === "GET" && pathname === "/api/admin/vehicles") {
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+            const status = (parsedUrl.searchParams.get("status") || "all").trim().toLowerCase();
+            const type = (parsedUrl.searchParams.get("type") || "all").trim();
+            const page = Math.max(1, parseInt(parsedUrl.searchParams.get("page") || "1", 10) || 1);
+            const limit = Math.max(1, Math.min(100, parseInt(parsedUrl.searchParams.get("limit") || "10", 10) || 10));
+            const offset = (page - 1) * limit;
+
+            const whereClauses = ["1=1"];
+            const params = [];
+
+            if (status && status !== "all") {
+                whereClauses.push("v.status = ?");
+                params.push(status);
+            }
+
+            if (type && type !== "all") {
+                whereClauses.push("v.vehicle_type = ?");
+                params.push(type);
+            }
+
+            if (search) {
+                whereClauses.push("(v.vehicle_number LIKE ? OR v.model LIKE ? OR u.name LIKE ? OR u.email LIKE ? OR u.mobile LIKE ?)");
+                const searchPattern = `%${search}%`;
+                params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+            }
+
+            const whereSql = "WHERE " + whereClauses.join(" AND ");
+
+            // Count total matching
+            const [countRows] = await pool.query(
+                `SELECT COUNT(*) AS total 
+                 FROM vehicles v
+                 JOIN driver_profiles d ON v.driver_id = d.driver_id
+                 JOIN users u ON d.user_id = u.user_id
+                 ${whereSql}`,
+                params
+            );
+            const total = countRows[0].total;
+
+            // Summary counts for KPI cards
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_count,
+                    COALESCE(SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END), 0) AS inactive_count,
+                    COALESCE(SUM(CASE WHEN status = 'under_maintenance' THEN 1 ELSE 0 END), 0) AS maintenance_count
+                 FROM vehicles`
+            );
+
+            // Fetch vehicle rows
+            const querySql = `
+                SELECT 
+                    v.vehicle_id,
+                    v.driver_id,
+                    v.vehicle_number,
+                    v.vehicle_type,
+                    v.model,
+                    v.capacity,
+                    v.status,
+                    u.name AS driver_name,
+                    u.email AS driver_email,
+                    u.mobile AS driver_phone,
+                    d.license_no,
+                    d.verification_status AS driver_verification_status,
+                    (SELECT COUNT(*) FROM trips t WHERE t.vehicle_id = v.vehicle_id) AS total_trips
+                FROM vehicles v
+                JOIN driver_profiles d ON v.driver_id = d.driver_id
+                JOIN users u ON d.user_id = u.user_id
+                ${whereSql}
+                ORDER BY v.vehicle_id DESC
+                LIMIT ? OFFSET ?
+            `;
+
+            const [vehicles] = await pool.query(querySql, [...params, limit, offset]);
+
+            return sendJson(res, 200, {
+                success: true,
+                vehicles: vehicles.map(v => ({
+                    ...v,
+                    capacity: Number(v.capacity),
+                    total_trips: Number(v.total_trips || 0)
+                })),
+                pagination: {
+                    total: total,
+                    page: page,
+                    limit: limit,
+                    totalPages: Math.ceil(total / limit) || 1
+                },
+                summary: {
+                    total: Number(summaryRows[0].total || 0),
+                    active: Number(summaryRows[0].active_count || 0),
+                    inactive: Number(summaryRows[0].inactive_count || 0),
+                    under_maintenance: Number(summaryRows[0].maintenance_count || 0)
+                }
+            });
+        }
+
+        // 8b. POST /api/admin/vehicles - Register new vehicle
+        if (req.method === "POST" && pathname === "/api/admin/vehicles") {
+            const body = await readJson(req);
+            let { driver_id, vehicle_number, vehicle_type, model, capacity, status } = body;
+
+            driver_id = parseInt(driver_id, 10);
+            capacity = parseInt(capacity, 10);
+            status = (status || "active").toLowerCase().trim();
+            vehicle_number = (vehicle_number || "").toUpperCase().trim();
+            vehicle_type = (vehicle_type || "").trim();
+            model = (model || "").trim();
+
+            const validTypes = ['Sedan', 'SUV', 'Hatchback', 'Auto', 'Bike', 'Premium'];
+            const validStatuses = ['active', 'inactive', 'under_maintenance'];
+
+            // Validation
+            if (!driver_id || isNaN(driver_id)) {
+                return sendJson(res, 400, { success: false, message: "Valid driver selection is required." });
+            }
+            if (!vehicle_number || vehicle_number.length < 4 || vehicle_number.length > 30) {
+                return sendJson(res, 400, { success: false, message: "Vehicle registration number must be between 4 and 30 characters." });
+            }
+            if (!validTypes.includes(vehicle_type)) {
+                return sendJson(res, 400, { success: false, message: `Invalid vehicle type. Allowed: ${validTypes.join(", ")}.` });
+            }
+            if (!model || model.length < 2 || model.length > 100) {
+                return sendJson(res, 400, { success: false, message: "Model name must be between 2 and 100 characters." });
+            }
+            if (!capacity || isNaN(capacity) || capacity < 1 || capacity > 20) {
+                return sendJson(res, 400, { success: false, message: "Capacity must be an integer between 1 and 20 seats." });
+            }
+            if (!validStatuses.includes(status)) {
+                return sendJson(res, 400, { success: false, message: `Invalid status. Allowed: ${validStatuses.join(", ")}.` });
+            }
+
+            // Verify driver exists
+            const [driverRows] = await pool.execute(
+                `SELECT d.driver_id, u.name, d.verification_status 
+                 FROM driver_profiles d 
+                 JOIN users u ON d.user_id = u.user_id 
+                 WHERE d.driver_id = ?`,
+                [driver_id]
+            );
+
+            if (driverRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Selected driver does not exist." });
+            }
+
+            try {
+                const [insertRes] = await pool.execute(
+                    `INSERT INTO vehicles (driver_id, vehicle_number, vehicle_type, model, capacity, status) 
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [driver_id, vehicle_number, vehicle_type, model, capacity, status]
+                );
+
+                await logActivity(
+                    null,
+                    "VEHICLE_ADDED",
+                    `Vehicle ${vehicle_number} (${model}, ${vehicle_type}) added and assigned to Driver ${driverRows[0].name} (Driver #${driver_id}) with status '${status}'.`,
+                    clientIp
+                );
+
+                return sendJson(res, 201, {
+                    success: true,
+                    message: `Vehicle ${vehicle_number} registered successfully.`,
+                    vehicle_id: insertRes.insertId,
+                    vehicle: {
+                        vehicle_id: insertRes.insertId,
+                        driver_id,
+                        vehicle_number,
+                        vehicle_type,
+                        model,
+                        capacity,
+                        status
+                    }
+                });
+            } catch (err) {
+                if (err.code === "ER_DUP_ENTRY") {
+                    return sendJson(res, 409, {
+                        success: false,
+                        message: `Vehicle with registration number '${vehicle_number}' is already registered.`
+                    });
+                }
+                throw err;
+            }
+        }
+
+        // 8c. PATCH /api/admin/vehicles/:id/status - Quick vehicle status update
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/vehicles\/\d+\/status$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const vehicleId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+            const newStatus = (body.status || "").toLowerCase().trim();
+
+            const validStatuses = ['active', 'inactive', 'under_maintenance'];
+            if (!validStatuses.includes(newStatus)) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: `Invalid status '${newStatus}'. Allowed: ${validStatuses.join(", ")}.`
+                });
+            }
+
+            const [vehRows] = await pool.execute(
+                `SELECT v.vehicle_id, v.vehicle_number, v.model, v.status, u.name AS driver_name 
+                 FROM vehicles v 
+                 JOIN driver_profiles d ON v.driver_id = d.driver_id 
+                 JOIN users u ON d.user_id = u.user_id 
+                 WHERE v.vehicle_id = ?`,
+                [vehicleId]
+            );
+
+            if (vehRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Vehicle not found." });
+            }
+
+            const vehicle = vehRows[0];
+            const prevStatus = vehicle.status;
+
+            if (prevStatus === newStatus) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: `Vehicle ${vehicle.vehicle_number} is already ${newStatus}.`
+                });
+            }
+
+            await pool.execute(
+                `UPDATE vehicles SET status = ? WHERE vehicle_id = ?`,
+                [newStatus, vehicleId]
+            );
+
+            let logAction = "VEHICLE_STATUS_UPDATED";
+            if (newStatus === "active") logAction = "VEHICLE_ACTIVE";
+            else if (newStatus === "inactive") logAction = "VEHICLE_INACTIVE";
+            else if (newStatus === "under_maintenance") logAction = "VEHICLE_MAINTENANCE";
+
+            await logActivity(
+                null,
+                logAction,
+                `Vehicle ${vehicle.vehicle_number} (${vehicle.model}) status changed from '${prevStatus}' to '${newStatus}' by Admin.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Vehicle ${vehicle.vehicle_number} status updated to ${newStatus.replace('_', ' ')}.`,
+                vehicle_id: vehicleId,
+                status: newStatus,
+                previous_status: prevStatus
+            });
+        }
+
+        // 8d. PATCH /api/admin/vehicles/:id - Edit vehicle details
+        if (req.method === "PATCH" && pathname.match(/^\/api\/admin\/vehicles\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const vehicleId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+
+            const [vehRows] = await pool.execute(
+                `SELECT v.*, u.name AS driver_name 
+                 FROM vehicles v 
+                 JOIN driver_profiles d ON v.driver_id = d.driver_id 
+                 JOIN users u ON d.user_id = u.user_id 
+                 WHERE v.vehicle_id = ?`,
+                [vehicleId]
+            );
+
+            if (vehRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Vehicle not found." });
+            }
+
+            const current = vehRows[0];
+            const validTypes = ['Sedan', 'SUV', 'Hatchback', 'Auto', 'Bike', 'Premium'];
+            const validStatuses = ['active', 'inactive', 'under_maintenance'];
+
+            let updatedNumber = body.vehicle_number !== undefined ? String(body.vehicle_number).toUpperCase().trim() : current.vehicle_number;
+            let updatedType = body.vehicle_type !== undefined ? String(body.vehicle_type).trim() : current.vehicle_type;
+            let updatedModel = body.model !== undefined ? String(body.model).trim() : current.model;
+            let updatedCapacity = body.capacity !== undefined ? parseInt(body.capacity, 10) : current.capacity;
+            let updatedStatus = body.status !== undefined ? String(body.status).toLowerCase().trim() : current.status;
+            let updatedDriverId = body.driver_id !== undefined ? parseInt(body.driver_id, 10) : current.driver_id;
+
+            // Validations
+            if (updatedNumber.length < 4 || updatedNumber.length > 30) {
+                return sendJson(res, 400, { success: false, message: "Vehicle number must be between 4 and 30 characters." });
+            }
+            if (!validTypes.includes(updatedType)) {
+                return sendJson(res, 400, { success: false, message: `Invalid vehicle type. Allowed: ${validTypes.join(", ")}.` });
+            }
+            if (updatedModel.length < 2 || updatedModel.length > 100) {
+                return sendJson(res, 400, { success: false, message: "Model name must be between 2 and 100 characters." });
+            }
+            if (isNaN(updatedCapacity) || updatedCapacity < 1 || updatedCapacity > 20) {
+                return sendJson(res, 400, { success: false, message: "Capacity must be an integer between 1 and 20." });
+            }
+            if (!validStatuses.includes(updatedStatus)) {
+                return sendJson(res, 400, { success: false, message: `Invalid status. Allowed: ${validStatuses.join(", ")}.` });
+            }
+
+            try {
+                await pool.execute(
+                    `UPDATE vehicles 
+                     SET driver_id = ?, vehicle_number = ?, vehicle_type = ?, model = ?, capacity = ?, status = ? 
+                     WHERE vehicle_id = ?`,
+                    [updatedDriverId, updatedNumber, updatedType, updatedModel, updatedCapacity, updatedStatus, vehicleId]
+                );
+
+                await logActivity(
+                    null,
+                    "VEHICLE_UPDATED",
+                    `Vehicle #${vehicleId} (${updatedNumber}, ${updatedModel}) updated by Admin. Status: '${updatedStatus}'.`,
+                    clientIp
+                );
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: `Vehicle ${updatedNumber} updated successfully.`,
+                    vehicle: {
+                        vehicle_id: vehicleId,
+                        driver_id: updatedDriverId,
+                        vehicle_number: updatedNumber,
+                        vehicle_type: updatedType,
+                        model: updatedModel,
+                        capacity: updatedCapacity,
+                        status: updatedStatus
+                    }
+                });
+            } catch (err) {
+                if (err.code === "ER_DUP_ENTRY") {
+                    return sendJson(res, 409, {
+                        success: false,
+                        message: `Vehicle with registration number '${updatedNumber}' is already registered.`
+                    });
+                }
+                throw err;
+            }
+        }
+
+        // =========================================================================
+        // 9. Trip & Booking Management Routes
+        // =========================================================================
+
+        // 9a. GET /api/admin/trips - Display all bookings & trips with details, filters & pagination
+        if (req.method === "GET" && pathname === "/api/admin/trips") {
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+            const status = (parsedUrl.searchParams.get("status") || "all").trim().toLowerCase();
+            const page = Math.max(1, parseInt(parsedUrl.searchParams.get("page") || "1", 10) || 1);
+            const limit = Math.max(1, Math.min(100, parseInt(parsedUrl.searchParams.get("limit") || "10", 10) || 10));
+            const offset = (page - 1) * limit;
+
+            const whereClauses = ["1=1"];
+            const params = [];
+
+            if (status && status !== "all") {
+                whereClauses.push("t.trip_status = ?");
+                params.push(status);
+            }
+
+            if (search) {
+                whereClauses.push("(u_pass.name LIKE ? OR u_pass.mobile LIKE ? OR u_driv.name LIKE ? OR u_driv.mobile LIKE ? OR r.pickup_location LIKE ? OR r.destination LIKE ? OR v.vehicle_number LIKE ?)");
+                const pattern = `%${search}%`;
+                params.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern);
+            }
+
+            const whereSql = "WHERE " + whereClauses.join(" AND ");
+
+            // Count total matching
+            const [countRows] = await pool.query(
+                `SELECT COUNT(*) AS total 
+                 FROM trips t
+                 JOIN passenger_profiles pp ON t.passenger_id = pp.passenger_id
+                 JOIN users u_pass ON pp.user_id = u_pass.user_id
+                 JOIN driver_profiles dp ON t.driver_id = dp.driver_id
+                 JOIN users u_driv ON dp.user_id = u_driv.user_id
+                 JOIN ride_requests r ON t.request_id = r.request_id
+                 JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+                 ${whereSql}`,
+                params
+            );
+            const total = countRows[0].total;
+
+            // Summary counts by status
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total,
+                    COALESCE(SUM(CASE WHEN trip_status = 'assigned' THEN 1 ELSE 0 END), 0) AS assigned_count,
+                    COALESCE(SUM(CASE WHEN trip_status = 'started' THEN 1 ELSE 0 END), 0) AS started_count,
+                    COALESCE(SUM(CASE WHEN trip_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_count,
+                    COALESCE(SUM(CASE WHEN trip_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count,
+                    COALESCE(SUM(fare), 0) AS total_fare_revenue
+                 FROM trips`
+            );
+
+            // Fetch trips with rich details
+            const querySql = `
+                SELECT 
+                    t.trip_id,
+                    t.request_id,
+                    t.passenger_id,
+                    t.driver_id,
+                    t.vehicle_id,
+                    t.start_time,
+                    t.end_time,
+                    DATE_FORMAT(t.start_time, '%b %d, %Y, %h:%i %p') AS formatted_start,
+                    DATE_FORMAT(t.end_time, '%b %d, %Y, %h:%i %p') AS formatted_end,
+                    DATE_FORMAT(r.requested_at, '%b %d, %Y, %h:%i %p') AS formatted_requested,
+                    t.distance_km,
+                    t.fare,
+                    t.trip_status,
+                    r.pickup_location,
+                    r.destination,
+                    r.estimated_fare,
+                    r.status AS request_status,
+                    u_pass.user_id AS passenger_user_id,
+                    u_pass.name AS passenger_name,
+                    u_pass.email AS passenger_email,
+                    u_pass.mobile AS passenger_phone,
+                    u_driv.user_id AS driver_user_id,
+                    u_driv.name AS driver_name,
+                    u_driv.email AS driver_email,
+                    u_driv.mobile AS driver_phone,
+                    dp.license_no,
+                    v.vehicle_number,
+                    v.vehicle_type,
+                    v.model AS vehicle_model,
+                    p.payment_status,
+                    p.payment_method
+                FROM trips t
+                JOIN passenger_profiles pp ON t.passenger_id = pp.passenger_id
+                JOIN users u_pass ON pp.user_id = u_pass.user_id
+                JOIN driver_profiles dp ON t.driver_id = dp.driver_id
+                JOIN users u_driv ON dp.user_id = u_driv.user_id
+                JOIN ride_requests r ON t.request_id = r.request_id
+                JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+                LEFT JOIN payments p ON t.trip_id = p.trip_id
+                ${whereSql}
+                ORDER BY t.trip_id DESC
+                LIMIT ? OFFSET ?
+            `;
+
+            const [trips] = await pool.query(querySql, [...params, limit, offset]);
+
+            return sendJson(res, 200, {
+                success: true,
+                trips: trips.map(t => ({
+                    ...t,
+                    distance_km: Number(t.distance_km),
+                    fare: Number(t.fare),
+                    estimated_fare: Number(t.estimated_fare)
+                })),
+                pagination: {
+                    total: total,
+                    page: page,
+                    limit: limit,
+                    totalPages: Math.ceil(total / limit) || 1
+                },
+                summary: {
+                    total: Number(summaryRows[0].total || 0),
+                    assigned: Number(summaryRows[0].assigned_count || 0),
+                    started: Number(summaryRows[0].started_count || 0),
+                    completed: Number(summaryRows[0].completed_count || 0),
+                    cancelled: Number(summaryRows[0].cancelled_count || 0),
+                    total_revenue: Number(summaryRows[0].total_fare_revenue || 0)
+                }
+            });
+        }
+
+        // 9b. PATCH /api/admin/trips/:id/status - Handle booking issues and valid status changes
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/trips\/\d+\/status$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const tripId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+            const newStatus = (body.status || "").toLowerCase().trim();
+
+            const validStatuses = ['assigned', 'started', 'completed', 'cancelled'];
+            if (!validStatuses.includes(newStatus)) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: `Invalid status '${newStatus}'. Allowed: ${validStatuses.join(", ")}.`
+                });
+            }
+
+            // Find trip
+            const [tripRows] = await pool.execute(
+                `SELECT t.trip_id, t.request_id, t.trip_status, t.passenger_id, t.driver_id,
+                        u_pass.name AS passenger_name, u_driv.name AS driver_name,
+                        r.pickup_location, r.destination
+                 FROM trips t
+                 JOIN passenger_profiles pp ON t.passenger_id = pp.passenger_id
+                 JOIN users u_pass ON pp.user_id = u_pass.user_id
+                 JOIN driver_profiles dp ON t.driver_id = dp.driver_id
+                 JOIN users u_driv ON dp.user_id = u_driv.user_id
+                 JOIN ride_requests r ON t.request_id = r.request_id
+                 WHERE t.trip_id = ?`,
+                [tripId]
+            );
+
+            if (tripRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Trip not found." });
+            }
+
+            const trip = tripRows[0];
+            const currentStatus = trip.trip_status;
+
+            if (currentStatus === newStatus) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: `Trip #${tripId} is already '${newStatus}'.`
+                });
+            }
+
+            // Valid transitions
+            const VALID_TRIP_TRANSITIONS = {
+                assigned: ['started', 'cancelled'],
+                started: ['completed', 'cancelled'],
+                completed: [], // Terminal
+                cancelled: []  // Terminal
+            };
+
+            if (!VALID_TRIP_TRANSITIONS[currentStatus] || !VALID_TRIP_TRANSITIONS[currentStatus].includes(newStatus)) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: `Invalid trip status transition from '${currentStatus}' to '${newStatus}'. Completed and Cancelled trips are terminal.`
+                });
+            }
+
+            // Execute update
+            let timeUpdateSql = "";
+            const updateParams = [newStatus];
+
+            if (newStatus === "started") {
+                timeUpdateSql = ", start_time = COALESCE(start_time, NOW())";
+            } else if (newStatus === "completed") {
+                timeUpdateSql = ", end_time = COALESCE(end_time, NOW())";
+            } else if (newStatus === "cancelled") {
+                timeUpdateSql = ", end_time = COALESCE(end_time, NOW())";
+            }
+
+            updateParams.push(tripId);
+
+            await pool.execute(
+                `UPDATE trips SET trip_status = ? ${timeUpdateSql} WHERE trip_id = ?`,
+                updateParams
+            );
+
+            // Synchronize ride_requests status
+            if (newStatus === "completed") {
+                await pool.execute(
+                    `UPDATE ride_requests SET status = 'completed' WHERE request_id = ?`,
+                    [trip.request_id]
+                );
+            } else if (newStatus === "cancelled") {
+                await pool.execute(
+                    `UPDATE ride_requests SET status = 'cancelled' WHERE request_id = ?`,
+                    [trip.request_id]
+                );
+            }
+
+            // Log activity
+            await logActivity(
+                null,
+                `TRIP_${newStatus.toUpperCase()}`,
+                `Trip #${tripId} (Passenger: ${trip.passenger_name}, Driver: ${trip.driver_name}) status updated from '${currentStatus}' to '${newStatus}' by Admin.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Trip #${tripId} status updated to '${newStatus}'.`,
+                trip_id: tripId,
+                status: newStatus,
+                previous_status: currentStatus
+            });
+        }
+
         // Static files fallback for web browser requests
         if (req.method === "GET" || req.method === "HEAD") {
             return serveStaticFile(req, res, pathname);
