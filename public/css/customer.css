@@ -1,7 +1,9 @@
 /* =====================================
-   RIDENOW - CUSTOMER DASHBOARD
-   Simple and clean design
+   RIDENOW - CUSTOMER MODULE STYLES
+   Covers: landing page, auth pages, dashboard
 ===================================== */
+
+/* ── Base ─────────────────────────────── */
 
 body {
     margin: 0;
@@ -11,7 +13,356 @@ body {
     color: #333333;
 }
 
-/* Header */
+/* ── Navbar (landing page) ─────────────── */
+
+.navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dddddd;
+    padding: 14px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: bold;
+    color: #222222;
+    text-decoration: none;
+}
+
+.logo span {
+    color: #e8b83a;
+}
+
+.navbar nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.navbar nav a {
+    color: #444444;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.navbar nav a:hover {
+    text-decoration: underline;
+}
+
+.login-btn {
+    background-color: #2b2b2b;
+    color: #ffffff;
+    border: none;
+    padding: 9px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.login-btn:hover {
+    background-color: #111111;
+}
+
+/* ── Hero Section ──────────────────────── */
+
+.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+    padding: 60px 5%;
+    flex-wrap: wrap;
+    background-color: #ffffff;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.hero-content {
+    flex: 1;
+    min-width: 260px;
+}
+
+.hero-content h1 {
+    font-size: 42px;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin: 0 0 16px 0;
+    line-height: 1.2;
+}
+
+.eyebrow {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #888888;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.description {
+    font-size: 16px;
+    color: #555555;
+    line-height: 1.7;
+    max-width: 420px;
+    margin: 0 0 28px 0;
+}
+
+.hero-card {
+    flex: 0 0 300px;
+    background-color: #fafafa;
+    border: 1px solid #dddddd;
+    padding: 28px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.hero-card h2 {
+    font-size: 18px;
+    color: #222222;
+    margin: 12px 0 6px 0;
+}
+
+.hero-card p {
+    font-size: 14px;
+    color: #666666;
+    margin: 0 0 18px 0;
+}
+
+.car-icon {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.ride-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background-color: #ffffff;
+    border: 1px solid #e8e8e8;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-top: 10px;
+    text-align: left;
+}
+
+.ride-info div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ride-info strong {
+    font-size: 13px;
+    color: #333333;
+}
+
+.ride-info small {
+    font-size: 12px;
+    color: #777777;
+}
+
+/* ── Services Section ─────────────────── */
+
+.services {
+    padding: 52px 5%;
+    text-align: center;
+    background-color: #f5f5f5;
+}
+
+.services h2 {
+    font-size: 28px;
+    color: #1a1a1a;
+    margin: 6px 0 32px 0;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.service-card {
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    padding: 24px 20px;
+    border-radius: 4px;
+    text-align: left;
+}
+
+.service-card h3 {
+    font-size: 16px;
+    color: #222222;
+    margin: 0 0 8px 0;
+}
+
+.service-card p {
+    font-size: 14px;
+    color: #666666;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── About Section ─────────────────────── */
+
+.about {
+    padding: 52px 5%;
+    background-color: #ffffff;
+    text-align: center;
+    border-top: 1px solid #eeeeee;
+}
+
+.about h2 {
+    font-size: 26px;
+    color: #1a1a1a;
+    margin: 0 0 12px 0;
+}
+
+.about p {
+    font-size: 15px;
+    color: #666666;
+    margin: 0;
+}
+
+/* ── Footer ────────────────────────────── */
+
+footer {
+    background-color: #222222;
+    color: #aaaaaa;
+    text-align: center;
+    padding: 20px 5%;
+    font-size: 13px;
+}
+
+/* ── Common Buttons ─────────────────────── */
+
+.primary-btn {
+    background-color: #2b2b2b;
+    color: #ffffff;
+    border: none;
+    padding: 11px 22px;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.primary-btn:hover {
+    background-color: #111111;
+}
+
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Auth Pages (Login & Register) ──────── */
+
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+    padding: 30px 20px;
+    background-color: #f5f5f5;
+}
+
+.auth-card {
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    padding: 34px 32px;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.auth-card .logo {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 20px;
+    text-decoration: none;
+}
+
+.auth-card h1 {
+    font-size: 22px;
+    margin: 0 0 6px 0;
+    color: #1a1a1a;
+}
+
+.auth-card > p:not(#loginMessage):not(#registerMessage):not(.auth-switch) {
+    font-size: 14px;
+    color: #666666;
+    margin: 0 0 22px 0;
+}
+
+.auth-card label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    color: #444444;
+    margin-top: 14px;
+    margin-bottom: 5px;
+}
+
+.auth-card input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid #cccccc;
+    font-size: 14px;
+    background-color: #ffffff;
+    border-radius: 3px;
+    margin-bottom: 2px;
+}
+
+.auth-card input:focus {
+    outline: none;
+    border-color: #888888;
+}
+
+.auth-card button[type="submit"] {
+    width: 100%;
+    margin-top: 20px;
+    background-color: #2b2b2b;
+    color: #ffffff;
+    border: none;
+    padding: 12px;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.auth-card button[type="submit"]:hover {
+    background-color: #111111;
+}
+
+.auth-card button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.auth-switch {
+    font-size: 13px;
+    color: #666666;
+    margin-top: 16px;
+    text-align: center;
+}
+
+.auth-switch a {
+    color: #2b2b2b;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* ── Dashboard Header ──────────────────── */
 
 header {
     background-color: #ffffff;
@@ -21,18 +372,21 @@ header {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    gap: 12px;
 }
 
 header h1 {
     margin: 0;
-    font-size: 24px;
-    color: #333333;
+    font-size: 22px;
+    font-weight: bold;
+    color: #222222;
 }
 
 nav {
     display: flex;
     align-items: center;
     gap: 18px;
+    flex-wrap: wrap;
 }
 
 nav a {
@@ -46,14 +400,20 @@ nav a:hover {
 }
 
 nav button {
-    background-color: #666666;
+    background-color: #555555;
     color: white;
     border: none;
     padding: 8px 14px;
     cursor: pointer;
+    font-size: 13px;
+    border-radius: 3px;
 }
 
-/* Main Content */
+nav button:hover {
+    background-color: #333333;
+}
+
+/* ── Dashboard Main Content ────────────── */
 
 main {
     width: 90%;
@@ -66,12 +426,19 @@ main section {
     border: 1px solid #dddddd;
     padding: 22px;
     margin-bottom: 20px;
+    border-radius: 4px;
 }
 
 main h2,
 main h3 {
-    color: #333333;
+    color: #222222;
     margin-top: 0;
+}
+
+main h3 {
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
 }
 
 main p {
@@ -79,7 +446,7 @@ main p {
     line-height: 1.6;
 }
 
-/* Profile Details */
+/* Profile spans */
 
 #customerName,
 #customerEmail,
@@ -88,7 +455,7 @@ main p {
     color: #555555;
 }
 
-/* Booking Form */
+/* ── Booking Form ──────────────────────── */
 
 #bookingForm {
     display: grid;
@@ -100,39 +467,44 @@ main p {
 #bookingForm label {
     font-size: 14px;
     font-weight: bold;
+    color: #444444;
+    margin-bottom: 4px;
 }
 
 #bookingForm input,
 #bookingForm select {
     width: 100%;
     box-sizing: border-box;
-    padding: 10px;
+    padding: 10px 11px;
     border: 1px solid #cccccc;
     background-color: #ffffff;
     font-size: 14px;
+    border-radius: 3px;
 }
 
 #bookingForm input:focus,
 #bookingForm select:focus {
     outline: none;
-    border-color: #777777;
+    border-color: #888888;
 }
 
-#bookingForm button {
+#bookingForm button[type="submit"] {
     grid-column: 1 / -1;
     width: fit-content;
-    background-color: #667785;
+    background-color: #2b2b2b;
     color: white;
     border: none;
-    padding: 10px 18px;
+    padding: 10px 20px;
+    font-size: 14px;
     cursor: pointer;
+    border-radius: 3px;
 }
 
-#bookingForm button:hover {
-    background-color: #53636f;
+#bookingForm button[type="submit"]:hover {
+    background-color: #111111;
 }
 
-#bookingForm button:disabled {
+#bookingForm button[type="submit"]:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -140,69 +512,98 @@ main p {
 #bookingMessage {
     grid-column: 1 / -1;
     font-size: 14px;
+    font-weight: 600;
+    margin-top: 4px;
 }
 
-/* Ride History */
+/* ── Ride History ──────────────────────── */
+
+#refreshRidesButton {
+    background-color: #555555;
+    color: white;
+    border: none;
+    padding: 9px 15px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    border-radius: 3px;
+}
+
+#refreshRidesButton:hover {
+    background-color: #333333;
+}
 
 #ridesContainer {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 15px;
+    margin-top: 8px;
 }
 
 .ride-card {
     background-color: #fafafa;
     border: 1px solid #dddddd;
-    padding: 15px;
+    padding: 16px;
+    border-radius: 4px;
 }
 
 .ride-card h4 {
-    margin-top: 0;
-    color: #333333;
+    margin: 0 0 10px 0;
+    font-size: 15px;
+    color: #222222;
 }
 
 .ride-card p {
-    margin: 8px 0;
+    margin: 6px 0;
     font-size: 14px;
+    color: #555555;
 }
 
 .ride-card button {
-    background-color: #777777;
+    margin-top: 12px;
+    background-color: #c62828;
     color: white;
     border: none;
-    padding: 8px 13px;
+    padding: 8px 14px;
+    font-size: 13px;
     cursor: pointer;
+    border-radius: 3px;
 }
 
 .ride-card button:hover {
-    background-color: #555555;
+    background-color: #8e0000;
 }
 
-/* Refresh Button */
+/* ── Responsive ────────────────────────── */
 
-#refreshRidesButton {
-    background-color: #667785;
-    color: white;
-    border: none;
-    padding: 9px 15px;
-    cursor: pointer;
-    margin-bottom: 15px;
-}
-
-#refreshRidesButton:hover {
-    background-color: #53636f;
-}
-
-/* Mobile Responsive */
-
-@media (max-width: 600px) {
-    header {
+@media (max-width: 700px) {
+    .hero {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+        padding: 36px 5%;
     }
 
-    nav {
+    .hero-content h1 {
+        font-size: 30px;
+    }
+
+    .hero-card {
+        flex: unset;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .auth-card {
+        padding: 26px 20px;
+    }
+
+    header,
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    nav,
+    .navbar nav {
         flex-wrap: wrap;
         gap: 12px;
     }
@@ -212,15 +613,19 @@ main p {
     }
 
     main section {
-        padding: 15px;
+        padding: 16px;
     }
 
     #bookingForm {
         grid-template-columns: 1fr;
     }
 
-    #bookingForm button,
+    #bookingForm button[type="submit"],
     #bookingMessage {
         grid-column: 1;
+    }
+
+    .service-grid {
+        grid-template-columns: 1fr;
     }
 }
