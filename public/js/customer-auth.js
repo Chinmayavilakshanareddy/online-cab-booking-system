@@ -171,6 +171,9 @@ if (loginForm) {
             if (result.customer) {
                 localStorage.setItem("customer", JSON.stringify(result.customer));
             }
+            if (result.user) {
+                localStorage.setItem("ridenow_user", JSON.stringify(result.user));
+            }
 
             displayStatusMessage(
                 messageEl,
@@ -178,7 +181,14 @@ if (loginForm) {
             );
 
             setTimeout(() => {
-                window.location.href = "dashboard.html";
+                const role = (result.user && result.user.role) || (result.customer && result.customer.role);
+                if (role === "super_admin") {
+                    window.location.href = "../admin/superadmin-dashboard.html";
+                } else if (role === "admin") {
+                    window.location.href = "../admin/admin-dashboard.html";
+                } else {
+                    window.location.href = "dashboard.html";
+                }
             }, 800);
 
         } catch (error) {

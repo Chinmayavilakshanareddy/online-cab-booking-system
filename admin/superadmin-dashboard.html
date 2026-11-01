@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard | RideNow Governance</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="superadmin-dashboard.html" class="sidebar-logo">
+                RideNow<span>.</span>
+                <span class="badge-role badge-role-super">Super Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item active">
+                <span class="icon">👑</span>
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span class="icon">🛡️</span>
+                <span>Manage Admins</span>
+            </a>
+
+            <div class="nav-section-title">Core Operations</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                <span>Admin Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span class="icon">👥</span>
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span class="icon">🚖</span>
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span class="icon">🚗</span>
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span class="icon">🗺️</span>
+                <span>Trips &amp; Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing &amp; Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span class="icon">💳</span>
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="icon">📈</span>
+                <span>Reports &amp; Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="superAdminAvatar" style="background: #7e22ce;">EV</div>
+                <div class="user-details">
+                    <div class="user-name" id="superAdminName">Eleanor Vance (Super Admin)</div>
+                    <div class="user-role-label">System Super Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Super Administrator Control Center</h1>
+                <p>Global platform governance, cross-entity performance metrics, and administrative audit trails.</p>
+            </div>
+            <div class="topbar-actions">
+                <div class="health-status-badge">
+                    <span class="health-pulse-dot"></span>
+                    <span>System Online</span>
+                </div>
+                <a href="manage-admins.html" class="btn-primary">+ Manage Admins</a>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh dashboard data">🔄 Refresh</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- ================= SYSTEM-WIDE STATISTICS (KPIS) ================= -->
+            <div class="stats-grid">
+                <!-- Platform Revenue -->
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Platform Gross Revenue</span>
+                        <div class="stat-icon">💰</div>
+                    </div>
+                    <div class="stat-value" id="statGrossRevenue">₹0.00</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statNetRevenueBadge">Net Revenue</span>
+                        <span id="statCancelRevenueMeta">₹0.00 cancel fees</span>
+                    </div>
+                </article>
+
+                <!-- Total Users -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Platform Users</span>
+                        <div class="stat-icon">👥</div>
+                    </div>
+                    <div class="stat-value" id="statTotalUsers">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-info" id="statActiveUsersBadge">0 Active</span>
+                        <span id="statPassengersDriversMeta">0 passengers, 0 drivers</span>
+                    </div>
+                </article>
+
+                <!-- Fleet & Drivers -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Fleet &amp; Driver Force</span>
+                        <div class="stat-icon">🚖</div>
+                    </div>
+                    <div class="stat-value" id="statApprovedDrivers">0 Approved</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-warning" id="statPendingDriversBadge">0 Pending</span>
+                        <span id="statActiveVehiclesMeta">0 active cabs</span>
+                    </div>
+                </article>
+
+                <!-- Platform Trips -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Platform Trips Handled</span>
+                        <div class="stat-icon">🗺️</div>
+                    </div>
+                    <div class="stat-value" id="statTotalTrips">0</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statCompletedTripsBadge">0 Completed</span>
+                        <span id="statCancelledTripsMeta">0 cancelled</span>
+                    </div>
+                </article>
+
+                <!-- Administrators -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Administrator Staff</span>
+                        <div class="stat-icon">🛡️</div>
+                    </div>
+                    <div class="stat-value" id="statTotalAdmins">0 Staff</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-super-admin" id="statSuperAdminsBadge">0 Super Admins</span>
+                        <span id="statStandardAdminsMeta">0 standard admins</span>
+                    </div>
+                </article>
+
+                <!-- System Runtime -->
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Server Runtime &amp; DB</span>
+                        <div class="stat-icon">⚡</div>
+                    </div>
+                    <div class="stat-value" id="statUptime">Uptime: 0h 0m</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="statMemoryBadge">Node.js</span>
+                        <span id="statActiveSessionsMeta">0 active sessions</span>
+                    </div>
+                </article>
+            </div>
+
+            <!-- ================= SYSTEM ALERTS & COMPLIANCE NOTIFICATIONS ================= -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>System Alerts &amp; Governance Advisories</h2>
+                        <p>Automated real-time notifications, compliance action items, and platform health checks.</p>
+                    </div>
+                    <span class="badge-pill badge-info" id="alertsCountBadge">Active Checks</span>
+                </div>
+                <div class="card-body">
+                    <div class="system-alerts-container" id="systemAlertsContainer">
+                        <div class="system-alert-item alert-info">
+                            <span class="alert-icon">ℹ️</span>
+                            <div class="alert-content">
+                                <div class="alert-title">Initializing System Alerts Engine...</div>
+                                <div class="alert-desc">Scanning database entities, fleet status, and audit logs.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= RECENT ADMINISTRATOR ACTIVITY LOGS ================= -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Administrator Audit Trail &amp; Activity Log</h2>
+                        <p>Complete record of administrative interventions, driver approvals, pricing modifications, and security actions.</p>
+                    </div>
+                    <div class="table-actions">
+                        <button type="button" class="btn-secondary" id="refreshLogsBtn">🔄 Refresh Logs</button>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="search-input-group">
+                            <span class="search-icon">🔍</span>
+                            <input type="search" id="logSearchInput" placeholder="Filter by admin, action, or description..." autocomplete="off">
+                        </div>
+                        <div class="filter-group">
+                            <label for="actionFilter">Action:</label>
+                            <select id="actionFilter">
+                                <option value="all">All Actions</option>
+                                <option value="ADMIN_CREATED">Admin Created</option>
+                                <option value="ADMIN_UPDATED">Admin Updated</option>
+                                <option value="ADMIN_DELETED">Admin Deleted</option>
+                                <option value="ADMIN_STATUS_CHANGED">Admin Status Changed</option>
+                                <option value="DRIVER_APPROVE">Driver Approved</option>
+                                <option value="DRIVER_REJECT">Driver Rejected</option>
+                                <option value="DRIVER_SUSPEND">Driver Suspended</option>
+                                <option value="FARE_RULE_CREATED">Fare Rule Created</option>
+                                <option value="FARE_RULE_UPDATED">Fare Rule Updated</option>
+                                <option value="SERVICE_AREA_CREATED">Service Area Created</option>
+                                <option value="SERVICE_AREA_STATUS_CHANGED">Area Status Changed</option>
+                                <option value="USER_LOGIN">User Login</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-filter-reset" id="resetLogFiltersBtn">Reset Filters</button>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <span class="results-count" id="logResultsCount">Loading audit logs...</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Administrator</th>
+                                    <th>Action Type</th>
+                                    <th>Activity Description</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <tr>
+                                    <td colspan="5" class="empty-state-cell">Loading administrative audit records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/superadmin-dashboard.js"></script>
+</body>
+</html>
+

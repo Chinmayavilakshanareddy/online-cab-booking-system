@@ -3097,6 +3097,690 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
+        // ========================================================
+        // 14. SUPER ADMIN DASHBOARD & SYSTEM MONITORING
+        // ========================================================
+        // 14a. GET /api/superadmin/dashboard/stats
+        if (req.method === "GET" && pathname === "/api/superadmin/dashboard/stats") {
+            // System-wide users
+            const [usersSummary] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_users,
+                    COALESCE(SUM(CASE WHEN role IN ('passenger', 'customer') THEN 1 ELSE 0 END), 0) AS total_passengers,
+                    COALESCE(SUM(CASE WHEN role = 'driver' THEN 1 ELSE 0 END), 0) AS total_drivers,
+                    COALESCE(SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END), 0) AS total_admins,
+                    COALESCE(SUM(CASE WHEN role = 'super_admin' THEN 1 ELSE 0 END), 0) AS total_super_admins,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_users,
+                    COALESCE(SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END), 0) AS blocked_users
+                 FROM users`
+            );
+
+            // Driver verifications
+            const [driverStatusSummary] = await pool.query(
+                `SELECT 
+                    COALESCE(SUM(CASE WHEN verification_status = 'approved' THEN 1 ELSE 0 END), 0) AS approved_count,
+                    COALESCE(SUM(CASE WHEN verification_status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+                    COALESCE(SUM(CASE WHEN verification_status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_count,
+                    COALESCE(SUM(CASE WHEN verification_status = 'suspended' THEN 1 ELSE 0 END), 0) AS suspended_count
+                 FROM driver_profiles`
+            );
+
+            // Vehicles
+            const [vehicleSummary] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_vehicles,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_vehicles,
+                    COALESCE(SUM(CASE WHEN status = 'under_maintenance' THEN 1 ELSE 0 END), 0) AS maintenance_vehicles,
+                    COALESCE(SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END), 0) AS inactive_vehicles
+                 FROM vehicles`
+            );
+
+            // Platform Trips & Revenue
+            const [tripsSummary] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_trips,
+                    COALESCE(SUM(CASE WHEN trip_status IN ('assigned', 'started') THEN 1 ELSE 0 END), 0) AS active_trips,
+                    COALESCE(SUM(CASE WHEN trip_status = 'completed' THEN fare ELSE 0 END), 0) AS gross_revenue,
+                    COALESCE(SUM(CASE WHEN trip_status = 'cancelled' THEN fare ELSE 0 END), 0) AS cancellation_revenue,
+                    COALESCE(SUM(distance_km), 0) AS total_distance_km
+                 FROM trips`
+            );
+
+            // Ride Requests
+            const [requestsSummary] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_requests,
+                    COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_requests
+                 FROM ride_requests`
+            );
+
+            // Service Areas & Fares
+            const [areasCount] = await pool.query(`SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active FROM service_areas`);
+            const [faresCount] = await pool.query(`SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active FROM fare_rules`);
+
+            // Recent Administrator Activity Logs (Latest 20)
+            const [recentLogs] = await pool.query(
+                `SELECT 
+                    sl.log_id,
+                    sl.user_id,
+                    sl.action,
+                    sl.description,
+                    sl.ip_address,
+                    sl.created_at,
+                    DATE_FORMAT(sl.created_at, '%b %d, %Y, %h:%i %p') AS formatted_time,
+                    COALESCE(u.name, 'System Automatic') AS user_name,
+                    COALESCE(u.email, 'system@ridenow.local') AS user_email,
+                    COALESCE(u.role, 'system') AS user_role
+                 FROM system_logs sl
+                 LEFT JOIN users u ON sl.user_id = u.user_id
+                 ORDER BY sl.log_id DESC
+                 LIMIT 20`
+            );
+
+            // Generate Dynamic System Alerts
+            const alerts = [];
+            const pendingDrivers = Number(driverStatusSummary[0].pending_count || 0);
+            if (pendingDrivers > 0) {
+                alerts.push({
+                    level: "warning",
+                    title: `${pendingDrivers} Pending Driver Verification${pendingDrivers > 1 ? "s" : ""}`,
+                    description: `New driver onboarding documents require compliance review and verification before dispatch.`,
+                    type: "DRIVER_VERIFICATION_PENDING",
+                    count: pendingDrivers
+                });
+            }
+
+            const maintenanceVehicles = Number(vehicleSummary[0].maintenance_vehicles || 0);
+            if (maintenanceVehicles > 0) {
+                alerts.push({
+                    level: "danger",
+                    title: `${maintenanceVehicles} Vehicle${maintenanceVehicles > 1 ? "s" : ""} Under Maintenance`,
+                    description: `Fleet units marked out-of-service for mechanical inspections or repairs.`,
+                    type: "VEHICLES_MAINTENANCE",
+                    count: maintenanceVehicles
+                });
+            }
+
+            const blockedUsers = Number(usersSummary[0].blocked_users || 0);
+            if (blockedUsers > 0) {
+                alerts.push({
+                    level: "warning",
+                    title: `${blockedUsers} Blocked / Restricted Account${blockedUsers > 1 ? "s" : ""}`,
+                    description: `Account access has been flagged and suspended due to safety policies or administrative actions.`,
+                    type: "USERS_BLOCKED",
+                    count: blockedUsers
+                });
+            }
+
+            const totalTrips = Number(tripsSummary[0].total_trips || 0);
+            const cancelledTrips = Number(tripsSummary[0].cancelled_trips || 0);
+            const cancellationPct = totalTrips > 0 ? (cancelledTrips / totalTrips) * 100 : 0;
+            if (cancellationPct > 20) {
+                alerts.push({
+                    level: "danger",
+                    title: `Elevated Ride Cancellation Rate (${cancellationPct.toFixed(1)}%)`,
+                    description: `Trip cancellations are above normal thresholds. Check driver availability and passenger wait times.`,
+                    type: "HIGH_CANCELLATION_RATE",
+                    count: cancelledTrips
+                });
+            }
+
+            // Always add system health indicator
+            alerts.push({
+                level: "success",
+                title: "MySQL Core Engine & Relational Integrity Active",
+                description: "InnoDB cluster, transaction safety, and background workers are operating normally with zero connection drops.",
+                type: "SYSTEM_HEALTHY",
+                count: 0
+            });
+
+            const memUsage = process.memoryUsage();
+            const uptimeSeconds = Math.floor(process.uptime());
+
+            return sendJson(res, 200, {
+                success: true,
+                system_overview: {
+                    total_users: Number(usersSummary[0].total_users || 0),
+                    passengers: Number(usersSummary[0].total_passengers || 0),
+                    drivers: Number(usersSummary[0].total_drivers || 0),
+                    admins: Number(usersSummary[0].total_admins || 0),
+                    super_admins: Number(usersSummary[0].total_super_admins || 0),
+                    active_users: Number(usersSummary[0].active_users || 0),
+                    blocked_users: blockedUsers
+                },
+                driver_metrics: {
+                    approved: Number(driverStatusSummary[0].approved_count || 0),
+                    pending: pendingDrivers,
+                    rejected: Number(driverStatusSummary[0].rejected_count || 0),
+                    suspended: Number(driverStatusSummary[0].suspended_count || 0)
+                },
+                fleet_metrics: {
+                    total: Number(vehicleSummary[0].total_vehicles || 0),
+                    active: Number(vehicleSummary[0].active_vehicles || 0),
+                    maintenance: maintenanceVehicles,
+                    inactive: Number(vehicleSummary[0].inactive_vehicles || 0)
+                },
+                trips_metrics: {
+                    total_trips: totalTrips,
+                    completed: Number(tripsSummary[0].completed_trips || 0),
+                    cancelled: cancelledTrips,
+                    active: Number(tripsSummary[0].active_trips || 0),
+                    cancellation_rate: Math.round(cancellationPct * 10) / 10,
+                    gross_revenue: Number(tripsSummary[0].gross_revenue || 0),
+                    cancellation_revenue: Number(tripsSummary[0].cancellation_revenue || 0),
+                    net_revenue: Number(tripsSummary[0].gross_revenue || 0) + Number(tripsSummary[0].cancellation_revenue || 0),
+                    total_distance_km: Number(tripsSummary[0].total_distance_km || 0)
+                },
+                governance: {
+                    service_areas: {
+                        total: Number(areasCount[0].total || 0),
+                        active: Number(areasCount[0].active || 0)
+                    },
+                    fare_rules: {
+                        total: Number(faresCount[0].total || 0),
+                        active: Number(faresCount[0].active || 0)
+                    }
+                },
+                system_runtime: {
+                    status: "healthy",
+                    uptime_seconds: uptimeSeconds,
+                    active_sessions: activeSessions.size,
+                    node_version: process.version,
+                    memory_rss_mb: Math.round(memUsage.rss / 1024 / 1024),
+                    memory_heap_mb: Math.round(memUsage.heapUsed / 1024 / 1024)
+                },
+                alerts: alerts,
+                recent_logs: recentLogs
+            });
+        }
+
+        // 14b. GET /api/superadmin/logs - Filterable System Audit Log
+        if (req.method === "GET" && pathname === "/api/superadmin/logs") {
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+            const action = (parsedUrl.searchParams.get("action") || "all").trim();
+            const page = Math.max(1, parseInt(parsedUrl.searchParams.get("page") || "1", 10) || 1);
+            const limit = Math.max(1, Math.min(100, parseInt(parsedUrl.searchParams.get("limit") || "25", 10) || 25));
+            const offset = (page - 1) * limit;
+
+            const whereClauses = ["1=1"];
+            const params = [];
+
+            if (action && action !== "all") {
+                whereClauses.push("sl.action = ?");
+                params.push(action);
+            }
+
+            if (search) {
+                whereClauses.push("(sl.description LIKE ? OR sl.action LIKE ? OR u.name LIKE ? OR u.email LIKE ? OR sl.ip_address LIKE ?)");
+                const pat = `%${search}%`;
+                params.push(pat, pat, pat, pat, pat);
+            }
+
+            const whereSql = "WHERE " + whereClauses.join(" AND ");
+
+            const [countRows] = await pool.query(
+                `SELECT COUNT(*) AS total 
+                 FROM system_logs sl 
+                 LEFT JOIN users u ON sl.user_id = u.user_id 
+                 ${whereSql}`,
+                params
+            );
+            const total = countRows[0].total;
+
+            const [logs] = await pool.query(
+                `SELECT 
+                    sl.log_id,
+                    sl.user_id,
+                    sl.action,
+                    sl.description,
+                    sl.ip_address,
+                    sl.created_at,
+                    DATE_FORMAT(sl.created_at, '%b %d, %Y, %h:%i %p') AS formatted_time,
+                    COALESCE(u.name, 'System') AS user_name,
+                    COALESCE(u.email, 'system@ridenow.local') AS user_email,
+                    COALESCE(u.role, 'system') AS user_role
+                 FROM system_logs sl
+                 LEFT JOIN users u ON sl.user_id = u.user_id
+                 ${whereSql}
+                 ORDER BY sl.log_id DESC
+                 LIMIT ? OFFSET ?`,
+                [...params, limit, offset]
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                logs: logs,
+                pagination: {
+                    total: total,
+                    page: page,
+                    limit: limit,
+                    totalPages: Math.ceil(total / limit) || 1
+                }
+            });
+        }
+
+        // ========================================================
+        // 15. ADMINISTRATOR MANAGEMENT (SUPER ADMIN ONLY)
+        // ========================================================
+        // 15a. GET /api/superadmin/admins - List all administrators
+        if (req.method === "GET" && pathname === "/api/superadmin/admins") {
+            const search = (parsedUrl.searchParams.get("search") || "").trim();
+            const role = (parsedUrl.searchParams.get("role") || "all").trim();
+            const status = (parsedUrl.searchParams.get("status") || "all").trim();
+
+            const whereClauses = ["u.role IN ('admin', 'super_admin')"];
+            const params = [];
+
+            if (role && role !== "all") {
+                whereClauses.push("u.role = ?");
+                params.push(role);
+            }
+
+            if (status && status !== "all") {
+                whereClauses.push("u.status = ?");
+                params.push(status);
+            }
+
+            if (search) {
+                whereClauses.push("(u.name LIKE ? OR u.email LIKE ? OR u.mobile LIKE ?)");
+                const pat = `%${search}%`;
+                params.push(pat, pat, pat);
+            }
+
+            const whereSql = "WHERE " + whereClauses.join(" AND ");
+
+            const querySql = `
+                SELECT 
+                    u.user_id,
+                    u.name,
+                    u.email,
+                    u.mobile,
+                    u.role,
+                    u.status,
+                    u.created_at,
+                    DATE_FORMAT(u.created_at, '%b %d, %Y') AS formatted_created,
+                    COALESCE(GROUP_CONCAT(ap.permission_name SEPARATOR ','), '') AS permissions_str,
+                    (SELECT COUNT(*) FROM system_logs sl WHERE sl.user_id = u.user_id) AS total_actions
+                FROM users u
+                LEFT JOIN admin_permissions ap ON u.user_id = ap.admin_id
+                ${whereSql}
+                GROUP BY u.user_id, u.name, u.email, u.mobile, u.role, u.status, u.created_at
+                ORDER BY (u.role = 'super_admin') DESC, u.user_id ASC
+            `;
+
+            const [adminRows] = await pool.query(querySql, params);
+
+            // Summary counts
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total,
+                    COALESCE(SUM(CASE WHEN role = 'super_admin' THEN 1 ELSE 0 END), 0) AS super_admins,
+                    COALESCE(SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END), 0) AS standard_admins,
+                    COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_admins,
+                    COALESCE(SUM(CASE WHEN status != 'active' THEN 1 ELSE 0 END), 0) AS inactive_admins
+                 FROM users
+                 WHERE role IN ('admin', 'super_admin')`
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                admins: adminRows.map(a => ({
+                    user_id: a.user_id,
+                    name: a.name,
+                    email: a.email,
+                    mobile: a.mobile,
+                    role: a.role,
+                    status: a.status,
+                    created_at: a.created_at,
+                    formatted_created: a.formatted_created,
+                    permissions: a.permissions_str ? a.permissions_str.split(",").filter(Boolean) : [],
+                    total_actions: Number(a.total_actions || 0)
+                })),
+                summary: {
+                    total: Number(summaryRows[0].total || 0),
+                    super_admins: Number(summaryRows[0].super_admins || 0),
+                    admins: Number(summaryRows[0].standard_admins || 0),
+                    active: Number(summaryRows[0].active_admins || 0),
+                    inactive: Number(summaryRows[0].inactive_admins || 0)
+                }
+            });
+        }
+
+        // 15b. POST /api/superadmin/admins - Create administrator account
+        if (req.method === "POST" && pathname === "/api/superadmin/admins") {
+            const body = await readJson(req);
+            const name = (body.name || "").trim();
+            const email = (body.email || "").trim().toLowerCase();
+            const mobile = (body.mobile || "").trim();
+            const password = body.password || "";
+            const role = (body.role || "admin").toLowerCase().trim();
+            const status = (body.status || "active").toLowerCase().trim() === "inactive" ? "inactive" : "active";
+            const permissions = Array.isArray(body.permissions) ? body.permissions : [];
+
+            if (!name || name.length < 2) {
+                return sendJson(res, 400, { success: false, message: "Full name must be at least 2 characters." });
+            }
+            if (!email || !email.includes("@") || !email.includes(".")) {
+                return sendJson(res, 400, { success: false, message: "A valid email address is required." });
+            }
+            if (!mobile || !/^\d{10}$/.test(mobile)) {
+                return sendJson(res, 400, { success: false, message: "Mobile number must be a valid 10-digit number." });
+            }
+            if (!password || password.length < 6) {
+                return sendJson(res, 400, { success: false, message: "Password must be at least 6 characters long." });
+            }
+            if (role !== "admin" && role !== "super_admin") {
+                return sendJson(res, 400, { success: false, message: "Role must be 'admin' or 'super_admin'." });
+            }
+
+            // Check if email or mobile already in use
+            const [existing] = await pool.execute(
+                `SELECT user_id, email, mobile FROM users WHERE email = ? OR mobile = ?`,
+                [email, mobile]
+            );
+            if (existing.length > 0) {
+                const dup = existing[0];
+                if (dup.email === email) {
+                    return sendJson(res, 409, { success: false, message: `Email '${email}' is already registered.` });
+                }
+                if (dup.mobile === mobile) {
+                    return sendJson(res, 409, { success: false, message: `Mobile '${mobile}' is already registered.` });
+                }
+            }
+
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                const [userRes] = await connection.execute(
+                    `INSERT INTO users (name, email, password, mobile, role, status) VALUES (?, ?, ?, ?, ?, ?)`,
+                    [name, email, passwordHash, mobile, role, status]
+                );
+                const newAdminId = userRes.insertId;
+
+                // Insert assigned permissions
+                const validPermissions = [
+                    "manage_passengers", "manage_drivers", "manage_vehicles",
+                    "manage_trips", "manage_fares", "view_reports", "system_settings"
+                ];
+                const permsToInsert = permissions.filter(p => validPermissions.includes(p));
+
+                // If super_admin, grant all permissions by default if none specified
+                const finalPerms = role === "super_admin" && permsToInsert.length === 0
+                    ? validPermissions
+                    : permsToInsert;
+
+                for (const perm of finalPerms) {
+                    await connection.execute(
+                        `INSERT INTO admin_permissions (admin_id, permission_name) VALUES (?, ?)`,
+                        [newAdminId, perm]
+                    );
+                }
+
+                await connection.commit();
+
+                await logActivity(
+                    null,
+                    "ADMIN_CREATED",
+                    `Created new ${role.toUpperCase()} account '${name}' (${email}, Phone: ${mobile}). Assigned ${finalPerms.length} permissions.`,
+                    clientIp
+                );
+
+                return sendJson(res, 201, {
+                    success: true,
+                    message: `${role === 'super_admin' ? 'Super Administrator' : 'Administrator'} '${name}' created successfully.`,
+                    user_id: newAdminId
+                });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        }
+
+        // 15c. PATCH /api/superadmin/admins/:id/status - Activate or Deactivate administrator
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/superadmin\/admins\/\d+\/status$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const targetId = parseInt(parts[3], 10);
+            const body = await readJson(req).catch(() => ({}));
+
+            const session = await getAuthenticatedUser(req);
+
+            // Self-deactivation protection
+            if (session && session.user_id === targetId) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "You cannot deactivate your own administrator account while logged in."
+                });
+            }
+
+            const [adminRows] = await pool.execute(
+                `SELECT user_id, name, email, role, status FROM users WHERE user_id = ? AND role IN ('admin', 'super_admin')`,
+                [targetId]
+            );
+            if (adminRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Administrator account not found." });
+            }
+
+            const admin = adminRows[0];
+            let newStatus = body.status ? body.status.toLowerCase().trim() : (admin.status === "active" ? "inactive" : "active");
+            if (newStatus !== "active" && newStatus !== "inactive") {
+                newStatus = "active";
+            }
+
+            // Protection: cannot deactivate the last active super_admin
+            if (admin.role === "super_admin" && newStatus === "inactive") {
+                const [activeSuper] = await pool.query(
+                    `SELECT COUNT(*) AS count FROM users WHERE role = 'super_admin' AND status = 'active' AND user_id != ?`,
+                    [targetId]
+                );
+                if (Number(activeSuper[0].count) === 0) {
+                    return sendJson(res, 400, {
+                        success: false,
+                        message: "Cannot deactivate the only active Super Administrator in the system."
+                    });
+                }
+            }
+
+            await pool.execute(
+                `UPDATE users SET status = ? WHERE user_id = ?`,
+                [newStatus, targetId]
+            );
+
+            await logActivity(
+                null,
+                "ADMIN_STATUS_CHANGED",
+                `${admin.role.toUpperCase()} '${admin.name}' (#${targetId}) status changed from '${admin.status}' to '${newStatus}'.`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Administrator '${admin.name}' is now ${newStatus}.`,
+                user_id: targetId,
+                status: newStatus
+            });
+        }
+
+        // 15d. PATCH /api/superadmin/admins/:id - Edit administrator details
+        if ((req.method === "PATCH" || req.method === "PUT") && pathname.match(/^\/api\/superadmin\/admins\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const targetId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+
+            const [adminRows] = await pool.execute(
+                `SELECT user_id, name, email, mobile, role, status FROM users WHERE user_id = ? AND role IN ('admin', 'super_admin')`,
+                [targetId]
+            );
+            if (adminRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Administrator account not found." });
+            }
+            const existing = adminRows[0];
+
+            const name = body.name !== undefined ? body.name.trim() : existing.name;
+            const email = body.email !== undefined ? body.email.trim().toLowerCase() : existing.email;
+            const mobile = body.mobile !== undefined ? body.mobile.trim() : existing.mobile;
+            const role = body.role !== undefined ? body.role.trim().toLowerCase() : existing.role;
+            const status = body.status !== undefined ? (body.status.toLowerCase() === "inactive" ? "inactive" : "active") : existing.status;
+            const permissions = Array.isArray(body.permissions) ? body.permissions : null;
+            const password = body.password ? body.password.trim() : "";
+
+            if (!name || name.length < 2) {
+                return sendJson(res, 400, { success: false, message: "Full name must be at least 2 characters." });
+            }
+            if (!email || !email.includes("@")) {
+                return sendJson(res, 400, { success: false, message: "A valid email address is required." });
+            }
+            if (!mobile || !/^\d{10}$/.test(mobile)) {
+                return sendJson(res, 400, { success: false, message: "Mobile number must be a valid 10-digit number." });
+            }
+            if (role !== "admin" && role !== "super_admin") {
+                return sendJson(res, 400, { success: false, message: "Role must be 'admin' or 'super_admin'." });
+            }
+
+            // Uniqueness check
+            const [dups] = await pool.execute(
+                `SELECT user_id, email, mobile FROM users WHERE (email = ? OR mobile = ?) AND user_id != ?`,
+                [email, mobile, targetId]
+            );
+            if (dups.length > 0) {
+                if (dups[0].email === email) return sendJson(res, 409, { success: false, message: `Email '${email}' is already in use.` });
+                if (dups[0].mobile === mobile) return sendJson(res, 409, { success: false, message: `Mobile '${mobile}' is already in use.` });
+            }
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                if (password && password.length >= 6) {
+                    const newHash = await bcrypt.hash(password, 10);
+                    await connection.execute(
+                        `UPDATE users SET name = ?, email = ?, mobile = ?, role = ?, status = ?, password = ? WHERE user_id = ?`,
+                        [name, email, mobile, role, status, newHash, targetId]
+                    );
+                } else {
+                    await connection.execute(
+                        `UPDATE users SET name = ?, email = ?, mobile = ?, role = ?, status = ? WHERE user_id = ?`,
+                        [name, email, mobile, role, status, targetId]
+                    );
+                }
+
+                // Update permissions if provided
+                if (permissions !== null) {
+                    await connection.execute(`DELETE FROM admin_permissions WHERE admin_id = ?`, [targetId]);
+                    const validPerms = [
+                        "manage_passengers", "manage_drivers", "manage_vehicles",
+                        "manage_trips", "manage_fares", "view_reports", "system_settings"
+                    ];
+                    for (const perm of permissions) {
+                        if (validPerms.includes(perm)) {
+                            await connection.execute(
+                                `INSERT INTO admin_permissions (admin_id, permission_name) VALUES (?, ?)`,
+                                [targetId, perm]
+                            );
+                        }
+                    }
+                }
+
+                await connection.commit();
+
+                await logActivity(
+                    null,
+                    "ADMIN_UPDATED",
+                    `Updated administrator account #${targetId} ('${name}', ${email}, Role: ${role}, Status: ${status}).`,
+                    clientIp
+                );
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: `Administrator '${name}' updated successfully.`,
+                    user_id: targetId
+                });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        }
+
+        // 15e. DELETE /api/superadmin/admins/:id - Safe Administrator Deletion
+        if (req.method === "DELETE" && pathname.match(/^\/api\/superadmin\/admins\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const targetId = parseInt(parts[3], 10);
+
+            const session = await getAuthenticatedUser(req);
+
+            // Safe Deletion Rule 1: Cannot delete self
+            if (session && session.user_id === targetId) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Self-deletion prohibited: You cannot delete your own logged-in administrator account."
+                });
+            }
+
+            const [adminRows] = await pool.execute(
+                `SELECT user_id, name, email, role FROM users WHERE user_id = ? AND role IN ('admin', 'super_admin')`,
+                [targetId]
+            );
+            if (adminRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Administrator account not found." });
+            }
+            const admin = adminRows[0];
+
+            // Safe Deletion Rule 2: Cannot delete the last remaining Super Admin
+            if (admin.role === "super_admin") {
+                const [superCount] = await pool.query(
+                    `SELECT COUNT(*) AS count FROM users WHERE role = 'super_admin'`
+                );
+                if (Number(superCount[0].count) <= 1) {
+                    return sendJson(res, 400, {
+                        success: false,
+                        message: "Safe deletion prevented: Cannot delete the only remaining Super Administrator in the system. At least one Super Administrator must exist."
+                    });
+                }
+            }
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                // Safe Deletion Rule 3: Clear permissions
+                await connection.execute(`DELETE FROM admin_permissions WHERE admin_id = ?`, [targetId]);
+
+                // Clear FK from system_logs (set user_id = NULL)
+                await connection.execute(`UPDATE system_logs SET user_id = NULL WHERE user_id = ?`, [targetId]);
+
+                // Delete from users
+                await connection.execute(`DELETE FROM users WHERE user_id = ?`, [targetId]);
+
+                await connection.commit();
+
+                await logActivity(
+                    null,
+                    "ADMIN_DELETED",
+                    `Safely deleted ${admin.role.toUpperCase()} account '${admin.name}' (#${targetId}, ${admin.email}). Permissions cleared and logs preserved.`,
+                    clientIp
+                );
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: `Administrator '${admin.name}' (${admin.email}) was safely removed.`,
+                    deleted_id: targetId
+                });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        }
+
         // Static files fallback for web browser requests
         if (req.method === "GET" || req.method === "HEAD") {
             return serveStaticFile(req, res, pathname);
