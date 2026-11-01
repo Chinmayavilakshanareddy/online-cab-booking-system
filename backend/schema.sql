@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS ride_requests (
     passenger_id INT NOT NULL,
     pickup_location VARCHAR(255) NOT NULL,
     destination VARCHAR(255) NOT NULL,
+    vehicle_type VARCHAR(50) DEFAULT NULL,
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    scheduled_at DATETIME DEFAULT NULL,
     estimated_fare DECIMAL(10, 2) NOT NULL,
     status ENUM('pending', 'accepted', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
     CONSTRAINT fk_request_passenger FOREIGN KEY (passenger_id) REFERENCES passenger_profiles(passenger_id) ON DELETE CASCADE

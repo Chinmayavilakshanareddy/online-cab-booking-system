@@ -119,7 +119,6 @@ const allowedOrigins = [
 
 // Create HTTP server
 const server = http.createServer(async (req, res) => {
-
     const origin = req.headers.origin;
 
     const clientIp =
@@ -307,7 +306,155 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
-        // 2c. Customer / Auth Logout
+        // 2c. Customer Book a Ride
+        if (req.method === "POST" && pathname === "/api/customers/book-ride") {
+            const sessionToken = getSessionToken(req);
+
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Please log in before booking a ride."
+                });
+            }
+
+            const session = activeSessions.get(sessionToken);
+
+            if (session.expiresAt && session.expiresAt < Date.now()) {
+                activeSessions.delete(sessionToken);
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Session expired. Please log in again."
+                });
+            }
+
+            const {
+                pickup,
+                destination,
+                vehicleType,
+                rideDate,
+                rideTime
+            } = await readJson(req);
+
+            if (
+                typeof pickup !== "string" ||
+                typeof destination !== "string" ||
+                typeof vehicleType !== "string" ||
+                typeof rideDate !== "string" ||
+                typeof rideTime !== "string" ||
+                !pickup.trim() ||
+                !destination.trim() ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(rideDate) ||
+                !/^\d{2}:\d{2}$/.test(rideTime)
+            ) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Please provide valid pickup, destination, vehicle type, date and time."
+                });
+            }
+
+            if (pickup.trim().toLowerCase() === destination.trim().toLowerCase()) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Pickup and destination cannot be the same."
+                });
+            }
+
+            // Timezone-safe date validation
+            const [year, month, day] = rideDate.split("-").map(Number);
+            const [hour, minute] = rideTime.split(":").map(Number);
+
+            const scheduledDate = new Date(
+                year, month - 1, day, hour, minute
+            );
+
+            if (
+                scheduledDate.getFullYear() !== year ||
+                scheduledDate.getMonth() !== month - 1 ||
+                scheduledDate.getDate() !== day ||
+                scheduledDate.getHours() !== hour ||
+                scheduledDate.getMinutes() !== minute ||
+                scheduledDate <= new Date()
+            ) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Please select a valid future travel date and time."
+                });
+            }
+
+            const [passengers] = await pool.execute(
+                `SELECT passenger_id
+                 FROM passenger_profiles
+                 WHERE user_id = ?
+                 LIMIT 1`,
+                [session.user_id]
+            );
+
+            if (passengers.length === 0) {
+                return sendJson(res, 404, {
+                    success: false,
+                    message: "Passenger profile not found."
+                });
+            }
+
+            const passengerId = passengers[0].passenger_id;
+
+            const [fareRules] = await pool.execute(
+                `SELECT base_fare
+                 FROM fare_rules
+                 WHERE vehicle_type = ? AND status = 'active'
+                 LIMIT 1`,
+                [vehicleType.trim()]
+            );
+
+            if (fareRules.length === 0) {
+                return sendJson(res, 409, {
+                    success: false,
+                    message: `No active fare rule is configured for ${vehicleType}.`
+                });
+            }
+
+            const estimatedFare = Number(fareRules[0].base_fare);
+
+            const [result] = await pool.execute(
+                `INSERT INTO ride_requests
+                 (passenger_id, pickup_location, destination,
+                  vehicle_type, scheduled_at, estimated_fare, status)
+                 VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+                [
+                    passengerId,
+                    pickup.trim(),
+                    destination.trim(),
+                    vehicleType.trim(),
+                    `${rideDate} ${rideTime}:00`,
+                    estimatedFare
+                ]
+            );
+
+            await logActivity(
+                session.user_id,
+                "RIDE_REQUEST_CREATED",
+                `Ride request ${result.insertId} created.`,
+                clientIp
+            );
+
+            return sendJson(res, 201, {
+                success: true,
+                message: "Ride request created successfully.",
+                booking: {
+                    request_id: result.insertId,
+                    passenger_id: passengerId,
+                    pickup,
+                    destination,
+                    vehicle_type: vehicleType,
+                    scheduled_at: `${rideDate} ${rideTime}:00`,
+                    estimated_fare: estimatedFare,
+                    fare_note: "Base fare only. Final fare depends on journey distance and duration.",
+                    status: "pending"
+                }
+            });
+        }
+
+        // 2d. Customer / Auth Logout
         if (req.method === "POST" && (pathname === "/api/customers/logout" || pathname === "/api/auth/logout")) {
             const sessionToken = getSessionToken(req);
 
@@ -325,6 +472,66 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, {
                 success: true,
                 message: "Logged out successfully"
+            });
+        }
+
+        // 2e. Get Customer Ride History
+        if (req.method === "GET" && pathname === "/api/customers/rides") {
+            const sessionToken = getSessionToken(req);
+
+            if (!sessionToken || !activeSessions.has(sessionToken)) {
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Please log in first."
+                });
+            }
+
+            const session = activeSessions.get(sessionToken);
+
+            if (session.expiresAt && session.expiresAt < Date.now()) {
+                activeSessions.delete(sessionToken);
+                return sendJson(res, 401, {
+                    success: false,
+                    message: "Session expired. Please log in again."
+                });
+            }
+
+            const [passengers] = await pool.execute(
+                `SELECT passenger_id FROM passenger_profiles WHERE user_id = ? LIMIT 1`,
+                [session.user_id]
+            );
+
+            if (passengers.length === 0) {
+                return sendJson(res, 404, {
+                    success: false,
+                    message: "Passenger profile not found."
+                });
+            }
+
+            const passengerId = passengers[0].passenger_id;
+
+            const [rides] = await pool.execute(
+                `SELECT 
+                    request_id,
+                    pickup_location,
+                    destination,
+                    vehicle_type,
+                    DATE_FORMAT(scheduled_at, '%Y-%m-%d %H:%i') AS scheduled_at,
+                    estimated_fare,
+                    status,
+                    DATE_FORMAT(created_at, '%b %d, %Y, %h:%i %p') AS created_at
+                 FROM ride_requests
+                 WHERE passenger_id = ?
+                 ORDER BY request_id DESC`,
+                [passengerId]
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                rides: rides.map(r => ({
+                    ...r,
+                    estimated_fare: Number(r.estimated_fare || 0)
+                }))
             });
         }
 
@@ -392,7 +599,6 @@ const server = http.createServer(async (req, res) => {
 
         // 4. Admin Dashboard Statistics
         if (req.method === "GET" && pathname === "/api/admin/dashboard/stats") {
-            // Run parallel aggregate queries for maximum performance
             const [passengersRes] = await pool.query(
                 `SELECT COUNT(*) AS total_passengers FROM users WHERE role IN ('passenger', 'customer')`
             );
@@ -435,7 +641,6 @@ const server = http.createServer(async (req, res) => {
                  FROM vehicles`
             );
 
-            // Fetch list of drivers awaiting approval
             const [pendingDriversList] = await pool.query(
                 `SELECT 
                     d.driver_id,
@@ -460,7 +665,6 @@ const server = http.createServer(async (req, res) => {
                  LIMIT 10`
             );
 
-            // Fetch recent trips
             const [recentTrips] = await pool.query(
                 `SELECT 
                     t.trip_id,
@@ -487,7 +691,6 @@ const server = http.createServer(async (req, res) => {
                  LIMIT 6`
             );
 
-            // Fetch recent system activity
             const [recentLogs] = await pool.query(
                 `SELECT 
                     l.log_id,
@@ -542,7 +745,7 @@ const server = http.createServer(async (req, res) => {
 
         // 5. Driver Management Actions API (Approve, Reject, Block, Unblock, Status Transitions)
         if ((req.method === "POST" || req.method === "PATCH") && pathname.startsWith("/api/admin/drivers/")) {
-            const parts = pathname.split("/").filter(Boolean); // ['api', 'admin', 'drivers', ':id', 'status' | 'approve' | 'reject' | 'block' | 'unblock']
+            const parts = pathname.split("/").filter(Boolean);
             const driverId = parseInt(parts[3], 10);
             const actionType = (parts[4] || "status").toLowerCase();
 
@@ -567,7 +770,6 @@ const server = http.createServer(async (req, res) => {
                 ? "blocked"
                 : driver.verification_status;
 
-            // Determine target status
             let targetStatus = "approved";
             if (actionType === "approve") {
                 targetStatus = "approved";
@@ -595,7 +797,6 @@ const server = http.createServer(async (req, res) => {
                 });
             }
 
-            // Validate status transitions
             const VALID_TRANSITIONS = {
                 pending: ["approved", "rejected", "blocked"],
                 approved: ["blocked", "rejected", "pending"],
@@ -617,7 +818,6 @@ const server = http.createServer(async (req, res) => {
                 });
             }
 
-            // Compute database updates
             let verificationStatus = targetStatus;
             let userStatus = "active";
             let vehicleStatus = "active";
@@ -655,7 +855,6 @@ const server = http.createServer(async (req, res) => {
                 [vehicleStatus, driverId]
             );
 
-            // Log action in system_logs
             let logAction = `DRIVER_${targetStatus.toUpperCase()}`;
             if (currentEffectiveStatus === "blocked" && targetStatus === "approved") {
                 logAction = "DRIVER_UNBLOCKED";
@@ -673,7 +872,7 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
-        // 5b. Get All Drivers API (Display all drivers, filter by status, search, pagination)
+        // 5b. Get All Drivers API
         if (req.method === "GET" && pathname === "/api/admin/drivers") {
             const search = (parsedUrl.searchParams.get("search") || "").trim();
             const status = (parsedUrl.searchParams.get("status") || "all").trim().toLowerCase();
@@ -704,7 +903,6 @@ const server = http.createServer(async (req, res) => {
 
             const whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
 
-            // Total count
             const [countRows] = await pool.query(
                 `SELECT COUNT(*) AS total 
                  FROM driver_profiles d 
@@ -715,7 +913,6 @@ const server = http.createServer(async (req, res) => {
             );
             const total = countRows[0].total;
 
-            // Summary stats for KPI cards
             const [summaryRows] = await pool.query(
                 `SELECT 
                     COUNT(*) AS total,
@@ -727,7 +924,6 @@ const server = http.createServer(async (req, res) => {
                  JOIN users u ON d.user_id = u.user_id`
             );
 
-            // Query drivers with license and vehicle details
             const querySql = `
                 SELECT 
                     d.driver_id,
@@ -788,7 +984,7 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
-        // 6. Admin Passengers List API (Search, Status Filter, Pagination)
+        // 6. Admin Passengers List API
         if (req.method === "GET" && pathname === "/api/admin/passengers") {
             const search = (parsedUrl.searchParams.get("search") || "").trim();
             const status = (parsedUrl.searchParams.get("status") || "all").trim().toLowerCase();
@@ -812,14 +1008,12 @@ const server = http.createServer(async (req, res) => {
 
             const whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
 
-            // Total matching count for pagination
             const [countRows] = await pool.query(
                 `SELECT COUNT(*) AS total FROM users u ${whereSql}`,
                 params
             );
             const total = countRows[0].total;
 
-            // Summary stats for metric indicators
             const [summaryRows] = await pool.query(
                 `SELECT 
                     COUNT(*) AS total,
@@ -829,7 +1023,6 @@ const server = http.createServer(async (req, res) => {
                  WHERE role IN ('passenger', 'customer')`
             );
 
-            // Fetch passenger rows with profile details
             const querySql = `
                 SELECT 
                     u.user_id,
@@ -872,9 +1065,9 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
-        // 7. Admin Update Passenger Status (Block / Unblock / Change Status)
+        // 7. Admin Update Passenger Status
         if ((req.method === "PATCH" || req.method === "POST") && pathname.startsWith("/api/admin/passengers/")) {
-            const parts = pathname.split("/").filter(Boolean); // ['api', 'admin', 'passengers', ':id', 'status' | 'block' | 'unblock']
+            const parts = pathname.split("/").filter(Boolean);
             const passengerIdParam = parseInt(parts[3], 10);
             const subAction = parts[4] || "status";
 
@@ -905,7 +1098,6 @@ const server = http.createServer(async (req, res) => {
                 });
             }
 
-            // Find passenger in users table
             const [userRows] = await pool.execute(
                 `SELECT u.user_id, u.name, u.email, u.mobile, u.status, pp.passenger_id
                  FROM users u
@@ -925,13 +1117,11 @@ const server = http.createServer(async (req, res) => {
             const passenger = userRows[0];
             const oldStatus = passenger.status;
 
-            // Update user status
             await pool.execute(
                 `UPDATE users SET status = ? WHERE user_id = ?`,
                 [newStatus, passenger.user_id]
             );
 
-            // Record action in system_logs
             const logAction = newStatus === "blocked"
                 ? "PASSENGER_BLOCKED"
                 : (newStatus === "active" ? "PASSENGER_UNBLOCKED" : `PASSENGER_${newStatus.toUpperCase()}`);
