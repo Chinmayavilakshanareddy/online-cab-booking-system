@@ -224,7 +224,8 @@ select:focus {
 
 /* Buttons */
 
-.primary-btn {
+.primary-btn,
+.btn-primary {
     background-color: #2b2b2b;
     color: #ffffff;
     border: none;
