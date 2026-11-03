@@ -70,8 +70,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -159,7 +159,7 @@
             state.isLoading = false;
             if (el.refreshBtn) {
                 el.refreshBtn.disabled = false;
-                el.refreshBtn.textContent = "🔄 Refresh";
+                el.refreshBtn.textContent = "Refresh";
             }
         }
     }
@@ -213,7 +213,6 @@
         if (!alerts || alerts.length === 0) {
             container.innerHTML = `
                 <div class="system-alert-item alert-success">
-                    <span class="alert-icon">✅</span>
                     <div class="alert-content">
                         <div class="alert-title">All Systems Operating Normally</div>
                         <div class="alert-desc">Zero security anomalies or pending operational blockages detected.</div>
@@ -223,18 +222,9 @@
             return;
         }
 
-        const iconMap = {
-            danger: "🚨",
-            warning: "⚠️",
-            info: "ℹ️",
-            success: "✅"
-        };
-
         container.innerHTML = alerts.map(a => {
-            const icon = iconMap[a.level] || "ℹ️";
             return `
                 <div class="system-alert-item alert-${a.level || 'info'}">
-                    <span class="alert-icon">${icon}</span>
                     <div class="alert-content">
                         <div class="alert-title">
                             ${escapeHtml(a.title)}

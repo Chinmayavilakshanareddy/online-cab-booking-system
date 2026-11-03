@@ -58,8 +58,7 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        toast.textContent = message;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -169,7 +168,7 @@
                     ${escapeHtml(passenger.name)}
                     ${tripBadge}
                 </div>
-                ${passenger.default_address ? `<div class="passenger-sub-info">📍 ${escapeHtml(passenger.default_address)}</div>` : ''}
+                ${passenger.default_address ? `<div class="passenger-sub-info">Address: ${escapeHtml(passenger.default_address)}</div>` : ''}
             </td>
             <td>
                 <a href="mailto:${escapeHtml(passenger.email)}" style="color: var(--text-primary); text-decoration: none;">
@@ -331,7 +330,6 @@
                 el.passengersList.innerHTML = `
                     <tr>
                         <td colspan="7" class="empty-state">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🔍</div>
                             <strong>No passengers found</strong>
                             <p style="margin-top: 4px; color: var(--text-muted); font-size: 12px;">
                                 ${state.search || state.status !== "all" 
@@ -363,7 +361,6 @@
             el.passengersList.innerHTML = `
                 <tr>
                     <td colspan="7" class="empty-state" style="color: var(--status-danger);">
-                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
                         <strong>Failed to fetch passenger records</strong>
                         <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">${escapeHtml(err.message)}</p>
                         <button type="button" class="btn-secondary" style="margin-top: 12px;" onclick="window.RideNowPassengers.reload()">Try Again</button>
@@ -375,7 +372,7 @@
             state.isLoading = false;
             if (el.refreshBtn) {
                 el.refreshBtn.disabled = false;
-                el.refreshBtn.innerHTML = `<span>🔄</span> Refresh Data`;
+                el.refreshBtn.textContent = "Refresh Data";
             }
         }
     }

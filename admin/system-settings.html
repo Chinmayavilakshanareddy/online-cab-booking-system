@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Settings | RideNow Governance</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="superadmin-dashboard.html" class="sidebar-logo">
+                RideNow
+                <span class="badge-role badge-role-super">Super Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item active">
+                <span>System Settings</span>
+            </a>
+
+            <div class="nav-section-title">Core Operations</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span>Admin Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span>Trips &amp; Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing &amp; Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span>Reports &amp; Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminUserAvatar" style="background: #1e3a8a;">CF</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Administrator</div>
+                    <div class="user-role-label">System Operations</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Application &amp; Operational Settings</h1>
+                <p>Configure platform brand parameters, ride booking toggles, dispatch rules, and emergency maintenance controls.</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="system-logs.html" class="btn-secondary">Audit Logs</a>
+                <button type="button" class="btn-secondary" id="refreshSettingsBtn" title="Reload settings from database">Refresh</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- ================= ACTIVE MAINTENANCE WARNING BANNER ================= -->
+            <div id="maintenanceBanner" class="maintenance-alert-banner" style="display: none;">
+                <div class="banner-content">
+                    <div class="banner-text">
+                        <h3>Platform Maintenance Mode is Active</h3>
+                        <p>Passenger booking requests are currently suspended while maintenance mode is enabled. Drivers and customers will see maintenance alerts.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" id="disableMaintenanceQuickBtn" style="border-color: #f87171; color: #991b1b; background: #ffffff;">
+                    Disable Maintenance
+                </button>
+            </div>
+
+            <!-- ================= SETTINGS FORM ================= -->
+            <form id="settingsForm" novalidate>
+
+                <!-- SECTION 1: GENERAL PLATFORM SETTINGS -->
+                <div class="settings-section-card">
+                    <div class="settings-section-header">
+                        <div>
+                            <h3>General Platform Configuration</h3>
+                            <p>Brand identity, system-wide toggles, and administrative communication channels.</p>
+                        </div>
+                    </div>
+                    <div class="settings-section-body">
+                        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                            <div class="form-group">
+                                <label for="platformName">Platform / Brand Name <span class="req">*</span></label>
+                                <input type="text" id="platformName" class="input-control" name="platform_name" placeholder="e.g. RideNow" required>
+                                <span class="field-hint">Public application branding displayed across passenger and driver portals.</span>
+                                <div class="field-error" id="errPlatformName" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supportEmail">Official Support Email <span class="req">*</span></label>
+                                <input type="email" id="supportEmail" class="input-control" name="support_email" placeholder="e.g. support@ridenow.com" required>
+                                <span class="field-hint">Used for rider notifications, receipts, and escalation contact.</span>
+                                <div class="field-error" id="errSupportEmail" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- SYSTEM TOGGLE SWITCHES -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                            <div class="toggle-switch-wrapper">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Ride Booking System</span>
+                                    <span class="toggle-desc">Permit passengers to submit new ride booking requests.</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="bookingEnabled" name="booking_enabled" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-switch-wrapper">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Driver Self-Registration</span>
+                                    <span class="toggle-desc">Allow prospective drivers to sign up and submit KYC verification docs.</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="driverRegEnabled" name="driver_registration_enabled" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-switch-wrapper" style="border-left: 4px solid #ef4444;">
+                                <div class="toggle-info">
+                                    <span class="toggle-title" style="color: #991b1b;">System Maintenance Mode</span>
+                                    <span class="toggle-desc">Temporarily freeze ride requests for scheduled database upgrades.</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="maintenanceMode" name="maintenance_mode">
+                                    <span class="toggle-slider slider-danger"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: OPERATIONAL & DISPATCH PARAMETERS -->
+                <div class="settings-section-card">
+                    <div class="settings-section-header">
+                        <div>
+                            <h3>Dispatch &amp; Operational Rules</h3>
+                            <p>Trip booking horizons, cancellation windows, base pricing floors, and surge caps.</p>
+                        </div>
+                    </div>
+                    <div class="settings-section-body">
+                        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+                            <div class="form-group">
+                                <label for="maxBookingDays">Advance Booking Horizon (Days) <span class="req">*</span></label>
+                                <input type="number" id="maxBookingDays" class="input-control" name="max_booking_days_ahead" min="1" max="365" step="1" required>
+                                <span class="field-hint">Max number of days passengers can schedule rides in advance (1-365).</span>
+                                <div class="field-error" id="errMaxBookingDays" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cancelWindow">Cancellation Window (Minutes) <span class="req">*</span></label>
+                                <input type="number" id="cancelWindow" class="input-control" name="cancellation_window_minutes" min="0" max="1440" step="5" required>
+                                <span class="field-hint">Minutes allowed after booking before cancellation fee applies (0-1440).</span>
+                                <div class="field-error" id="errCancelWindow" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="defaultVehicleType">Default Vehicle Category <span class="req">*</span></label>
+                                <select id="defaultVehicleType" class="select-control" name="default_vehicle_type" required>
+                                    <option value="Sedan">Sedan</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Hatchback">Hatchback</option>
+                                    <option value="Auto">Auto</option>
+                                    <option value="Bike">Bike</option>
+                                    <option value="Premium">Premium</option>
+                                </select>
+                                <span class="field-hint">Pre-selected category in the passenger ride booking widget.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="minFareAmount">Minimum Fare Base Floor (INR) <span class="req">*</span></label>
+                                <input type="number" id="minFareAmount" class="input-control" name="min_fare_amount" min="0" max="10000" step="5" required>
+                                <span class="field-hint">Absolute minimum price floor allowed for any ride across the network.</span>
+                                <div class="field-error" id="errMinFareAmount" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="surgeMultiplierMax">Maximum Surge Multiplier <span class="req">*</span></label>
+                                <input type="number" id="surgeMultiplierMax" class="input-control" name="surge_multiplier_max" min="1.0" max="5.0" step="0.1" required>
+                                <span class="field-hint">Dynamic pricing cap during peak hours or bad weather (1.0x - 5.0x).</span>
+                                <div class="field-error" id="errSurgeMultiplierMax" style="display: none; color: var(--status-danger); font-size: 12px; margin-top: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SAVE ACTION BAR -->
+                <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        Changes are validated immediately and recorded in the system audit trail.
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" class="btn-secondary" id="resetBtn">Reset to Current</button>
+                        <button type="submit" class="btn-primary" id="saveSettingsBtn" style="padding: 10px 24px; font-weight: 700;">
+                            Save and Apply All Settings
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <!-- ================= RECENT SETTINGS CHANGE AUDIT TRAIL ================= -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Settings Change Audit History</h2>
+                        <p>Past configuration modifications and who authorized the updates.</p>
+                    </div>
+                    <a href="system-logs.html?action=SETTINGS_UPDATED" class="btn-secondary" style="font-size: 12px; padding: 4px 10px;">View Full Log Stream</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Log ID</th>
+                                    <th style="width: 180px;">Date &amp; Time</th>
+                                    <th style="width: 180px;">Administrator</th>
+                                    <th>Audit Details of Changes</th>
+                                    <th style="width: 130px; text-align: right;">IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="5" class="empty-state">
+                                        Loading settings audit history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/system-settings.js"></script>
+</body>
+</html>

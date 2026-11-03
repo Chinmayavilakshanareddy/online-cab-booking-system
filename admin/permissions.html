@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permissions Management | RideNow Governance</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="superadmin-dashboard.html" class="sidebar-logo">
+                RideNow
+                <span class="badge-role badge-role-super">Super Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item active">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
+            </a>
+
+            <div class="nav-section-title">Core Operations</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span>Admin Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span>Trips &amp; Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing &amp; Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span>Reports &amp; Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminUserAvatar" style="background: #1e3a8a;">SA</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Super Administrator</div>
+                    <div class="user-role-label">System Administrator</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>Role &amp; Permissions Management</h1>
+                <p>Define, audit, and restrict operational access capabilities for each administrator account.</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="manage-admins.html" class="btn-secondary">Manage Admins</a>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh permissions list">Refresh</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- ================= KPI STRIP ================= -->
+            <div class="stats-grid">
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Administrators</span>
+                    </div>
+                    <div class="stat-value" id="kpiTotalAdmins">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-info" id="kpiSuperAdmins">- Super</span>
+                        <span>Platform staff accounts</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Full Platform Access</span>
+                    </div>
+                    <div class="stat-value" id="kpiFullAccess">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-super-admin">Root Privileges</span>
+                        <span>Super Admins / Unrestricted</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Restricted Admin Roles</span>
+                    </div>
+                    <div class="stat-value" id="kpiRestricted">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-warning">Scoped Access</span>
+                        <span>Principle of least privilege</span>
+                    </div>
+                </article>
+
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Permissions Granted</span>
+                    </div>
+                    <div class="stat-value" id="kpiTotalGranted">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success">Active Grants</span>
+                        <span>Across 7 capability modules</span>
+                    </div>
+                </article>
+            </div>
+
+            <!-- ================= PERMISSION CATALOG ACCORDION ================= -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="cursor: pointer;" id="catalogToggleHeader">
+                    <div class="card-title-group">
+                        <h2>System Capability Permissions Catalog</h2>
+                        <p>Available operational scopes that can be granted or revoked per administrator.</p>
+                    </div>
+                    <button type="button" class="btn-secondary" style="font-size: 12px; padding: 4px 10px;" id="toggleCatalogBtn">Hide Details</button>
+                </div>
+                <div class="card-body" id="catalogContent">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">manage_passengers</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">View passenger directory, inspect travel histories, activate, or block user accounts.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">manage_drivers</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Review driver licenses, approve pending registrations, reject, or suspend driver access.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">manage_vehicles</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Register new fleet vehicles, update specifications, and track maintenance statuses.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">manage_trips</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Monitor active trip dispatch, resolve live ride exceptions, and inspect booking fares.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">manage_fares</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Configure base fares, per-km rates, cancellation fees, and defined service area zones.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">view_reports</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Access business analytics, revenue breakdowns, driver performance, and booking KPIs.</p>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <strong style="color: var(--text-primary); font-size: 13px;">system_settings</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0;">Modify global platform settings, toggle maintenance mode, and audit system activity logs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TABLE CARD ================= -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Administrator Permissions Directory</h2>
+                        <p>View current permissions assigned to each administrator account and modify access rights.</p>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="table-toolbar-left">
+                        <input type="search" id="searchInput" class="input-control" placeholder="Search administrator by name or email..." autocomplete="off">
+                        <div class="filter-group">
+                            <label for="roleFilter">Role:</label>
+                            <select id="roleFilter" class="select-control">
+                                <option value="all">All Roles</option>
+                                <option value="super_admin">Super Admin</option>
+                                <option value="admin">Standard Admin</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="accessFilter">Access Scope:</label>
+                            <select id="accessFilter" class="select-control">
+                                <option value="all">All Access Levels</option>
+                                <option value="full">Full Access Only</option>
+                                <option value="restricted">Restricted Scope Only</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-filter-reset" id="resetFiltersBtn">Reset</button>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <span class="results-count" id="adminResultsCount">Loading permissions...</span>
+                    </div>
+                </div>
+
+                <!-- Table Body -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Administrator</th>
+                                    <th>Assigned Role</th>
+                                    <th>Account Status</th>
+                                    <th style="min-width: 320px;">Assigned Capabilities &amp; Permissions</th>
+                                    <th style="text-align: center;">Granted</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permissionsTableBody">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        Loading administrator permissions...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ================= MODAL: EDIT PERMISSIONS ================= -->
+    <div class="modal-overlay" id="permissionModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="permModalTitle">
+        <div class="modal-box" style="max-width: 620px;">
+            <div class="modal-header">
+                <h2 id="permModalTitle">Edit Administrator Permissions</h2>
+                <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">Close</button>
+            </div>
+            <form id="permissionForm">
+                <input type="hidden" id="editAdminId">
+                <div class="form-error" id="modalError" style="display: none;"></div>
+
+                <div style="padding: 20px 24px 10px;">
+                    <!-- Admin Info Badge -->
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <strong id="modalAdminName" style="font-size: 15px; color: var(--text-primary); display: block;">-</strong>
+                            <span id="modalAdminEmail" style="font-size: 12px; color: var(--text-secondary);">-</span>
+                        </div>
+                        <span id="modalAdminRoleBadge" class="badge-pill badge-admin">Admin</span>
+                    </div>
+
+                    <div id="superAdminWarning" style="display: none; background: #faf5ff; border: 1px solid #d8b4fe; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #6b21a8;">
+                        <strong>Super Administrator Notice:</strong> This account possesses unrestricted root privileges across the platform. Permissions cannot be individually revoked.
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Operational Capability Grants:</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn-secondary" id="selectAllBtn" style="font-size: 11px; padding: 3px 8px;">Select All</button>
+                            <button type="button" class="btn-secondary" id="deselectAllBtn" style="font-size: 11px; padding: 3px 8px;">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes Grid -->
+                    <div class="permission-checkbox-grid" style="grid-template-columns: 1fr; gap: 8px;" id="modalCheckboxGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="modalCancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="savePermissionsBtn">Save Permissions</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/permissions.js"></script>
+</body>
+</html>

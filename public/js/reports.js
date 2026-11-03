@@ -89,8 +89,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -316,7 +316,7 @@
                 return `
                     <div class="progress-item">
                         <div class="progress-header">
-                            <span style="text-transform: uppercase;">💳 ${escapeHtml(p.method)} <span class="progress-meta">(${p.count} txns)</span></span>
+                            <span style="text-transform: uppercase;">${escapeHtml(p.method)} <span class="progress-meta">(${p.count} txns)</span></span>
                             <span>${formatCurrency(p.amount)}</span>
                         </div>
                         <div class="progress-track">
@@ -358,7 +358,7 @@
             el.driverReportTableBody.innerHTML = `
                 <tr>
                     <td colspan="8" class="empty-state-cell" style="color: var(--status-danger);">
-                        ✕ Unable to load driver report: ${escapeHtml(err.message)}
+                        Unable to load driver report: ${escapeHtml(err.message)}
                     </td>
                 </tr>
             `;
@@ -410,7 +410,7 @@
                     <td style="text-align: right; font-weight: 600;">${(d.total_distance_km || 0).toFixed(1)} km</td>
                     <td style="text-align: right; font-weight: 700; color: #166534;">${formatCurrency(d.total_earnings)}</td>
                     <td style="text-align: center;">
-                        <span class="rating-badge">★ ${(d.rating || 5).toFixed(1)}</span>
+                        <span class="rating-badge">${(d.rating || 5).toFixed(1)} / 5</span>
                     </td>
                 </tr>
             `;
@@ -447,7 +447,7 @@
             el.passengerReportTableBody.innerHTML = `
                 <tr>
                     <td colspan="8" class="empty-state-cell" style="color: var(--status-danger);">
-                        ✕ Unable to load passenger report: ${escapeHtml(err.message)}
+                        Unable to load passenger report: ${escapeHtml(err.message)}
                     </td>
                 </tr>
             `;

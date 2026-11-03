@@ -82,8 +82,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -155,7 +155,7 @@
             el.adminsTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="empty-state-cell" style="color: var(--status-danger);">
-                        ✕ Unable to load administrators: ${escapeHtml(err.message)}
+                        Unable to load administrators: ${escapeHtml(err.message)}
                     </td>
                 </tr>
             `;
@@ -204,8 +204,8 @@
         tbody.innerHTML = filtered.map(admin => {
             const isSuper = admin.role === "super_admin";
             const roleBadge = isSuper
-                ? `<span class="badge-pill badge-super-admin">👑 Super Admin</span>`
-                : `<span class="badge-pill badge-admin">🛡️ Admin</span>`;
+                ? `<span class="badge-pill badge-super-admin">Super Admin</span>`
+                : `<span class="badge-pill badge-admin">Admin</span>`;
 
             const isActive = admin.status === "active";
             const statusBadge = isActive
@@ -218,7 +218,7 @@
             // Permissions formatting
             let permsHtml = "";
             if (isSuper && admin.permissions.length === 0) {
-                permsHtml = `<span class="permission-pill perm-all">★ Full Root Privileges</span>`;
+                permsHtml = `<span class="permission-pill perm-all">Full Root Privileges</span>`;
             } else if (admin.permissions.length > 0) {
                 permsHtml = admin.permissions.map(p => {
                     const clean = p.replace("manage_", "").replace("view_", "");
@@ -257,13 +257,13 @@
                     <td style="text-align: center;">
                         <div class="table-actions" style="justify-content: center; gap: 6px;">
                             <button type="button" class="btn-table-action btn-view btn-edit-admin" data-admin-id="${admin.user_id}" title="Edit admin details">
-                                ✏️ Edit
+                                Edit
                             </button>
                             <button type="button" class="btn-table-action ${toggleClass} btn-status-admin" data-admin-id="${admin.user_id}" data-current-status="${admin.status}" ${isSelf ? 'disabled title="Cannot change status of currently logged in user"' : ''}>
                                 ${toggleText}
                             </button>
                             <button type="button" class="btn-table-action btn-reject btn-delete-admin" data-admin-id="${admin.user_id}" ${isSelf ? 'disabled title="Cannot delete your own account"' : ''} title="Safe delete administrator">
-                                🗑️ Delete
+                                Delete
                             </button>
                         </div>
                     </td>

@@ -60,8 +60,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -128,10 +128,10 @@
             return `
                 <div class="table-actions" style="justify-content: center; gap: 4px;">
                     <button type="button" class="btn-table-action btn-approve btn-trip-action" data-trip-id="${tripId}" data-status="started" title="Start Ride">
-                        ▶ Start
+                        Start
                     </button>
                     <button type="button" class="btn-table-action btn-reject btn-trip-action" data-trip-id="${tripId}" data-status="cancelled" title="Cancel Booking">
-                        ✕ Cancel
+                        Cancel
                     </button>
                 </div>
             `;
@@ -141,21 +141,21 @@
             return `
                 <div class="table-actions" style="justify-content: center; gap: 4px;">
                     <button type="button" class="btn-table-action btn-approve btn-trip-action" data-trip-id="${tripId}" data-status="completed" title="Complete Ride">
-                        ✓ Complete
+                        Complete
                     </button>
                     <button type="button" class="btn-table-action btn-reject btn-trip-action" data-trip-id="${tripId}" data-status="cancelled" title="Abort / Cancel Ride">
-                        ✕ Cancel
+                        Cancel
                     </button>
                 </div>
             `;
         }
 
         if (s === "completed") {
-            return `<span style="font-size: 11px; color: var(--status-success); font-weight: 600;">✓ Fulfilled</span>`;
+            return `<span style="font-size: 11px; color: var(--status-success); font-weight: 600;">Fulfilled</span>`;
         }
 
         if (s === "cancelled") {
-            return `<span style="font-size: 11px; color: var(--status-danger); font-weight: 600;">✕ Closed</span>`;
+            return `<span style="font-size: 11px; color: var(--status-danger); font-weight: 600;">Closed</span>`;
         }
 
         return "-";
@@ -191,14 +191,14 @@
             <td>
                 <div class="driver-info-cell">
                     <span class="driver-name">${escapeHtml(t.passenger_name)}</span>
-                    <span class="driver-sub">📞 ${escapeHtml(t.passenger_phone || 'N/A')}</span>
-                    <span class="driver-sub">✉️ ${escapeHtml(t.passenger_email || 'N/A')}</span>
+                    <span class="driver-sub">Phone: ${escapeHtml(t.passenger_phone || 'N/A')}</span>
+                    <span class="driver-sub">Email: ${escapeHtml(t.passenger_email || 'N/A')}</span>
                 </div>
             </td>
             <td>
                 <div class="driver-info-cell">
                     <span class="driver-name">${escapeHtml(t.driver_name)}</span>
-                    <span class="driver-sub">📞 ${escapeHtml(t.driver_phone || 'N/A')}</span>
+                    <span class="driver-sub">Phone: ${escapeHtml(t.driver_phone || 'N/A')}</span>
                     <div>
                         <span class="vehicle-plate" style="font-size: 11px;">${escapeHtml(t.vehicle_number)}</span>
                         <small class="driver-sub">${escapeHtml(t.vehicle_type)}</small>
@@ -208,10 +208,10 @@
             <td>
                 <div style="display: flex; flex-direction: column; gap: 4px; max-width: 260px;">
                     <div style="font-size: 12px; color: var(--status-success); font-weight: 600;">
-                        🟢 ${escapeHtml(t.pickup_location)}
+                        Pickup: ${escapeHtml(t.pickup_location)}
                     </div>
                     <div style="font-size: 12px; color: var(--status-danger); font-weight: 600;">
-                        🔴 ${escapeHtml(t.destination)}
+                        Drop: ${escapeHtml(t.destination)}
                     </div>
                 </div>
             </td>
@@ -342,7 +342,6 @@
                 el.tripsList.innerHTML = `
                     <tr>
                         <td colspan="8" class="empty-state">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🗺️</div>
                             <strong>No trips found</strong>
                             <p style="margin-top: 4px; color: var(--text-muted); font-size: 12px;">
                                 ${state.search || state.status !== "all"
@@ -368,7 +367,6 @@
             el.tripsList.innerHTML = `
                 <tr>
                     <td colspan="8" class="empty-state" style="color: var(--status-danger);">
-                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
                         <strong>Failed to load trips</strong>
                         <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">${escapeHtml(err.message)}</p>
                         <button type="button" class="btn-secondary" style="margin-top: 12px;" onclick="window.RideNowTrips.reload()">Try Again</button>
@@ -380,7 +378,7 @@
             state.isLoading = false;
             if (el.refreshBtn) {
                 el.refreshBtn.disabled = false;
-                el.refreshBtn.innerHTML = `<span>🔄</span> Refresh`;
+                el.refreshBtn.textContent = "Refresh";
             }
         }
     }

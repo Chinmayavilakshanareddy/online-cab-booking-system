@@ -106,8 +106,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -203,7 +203,7 @@
             el.fareRulesTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="empty-state-cell" style="color: var(--status-danger);">
-                        ✕ Unable to connect to server: ${escapeHtml(err.message)}
+                        Unable to connect to server: ${escapeHtml(err.message)}
                     </td>
                 </tr>
             `;
@@ -259,7 +259,7 @@
                     <td style="text-align: center;">
                         <div class="table-actions" style="justify-content: center; gap: 6px;">
                             <button type="button" class="btn-table-action btn-view btn-edit-fare" data-fare-id="${rule.fare_id}" title="Edit fare rule">
-                                ✏️ Edit
+                                Edit
                             </button>
                             <button type="button" class="btn-table-action ${toggleBtnClass} btn-toggle-fare" data-fare-id="${rule.fare_id}" data-current-status="${rule.status}">
                                 ${toggleActionText}
@@ -449,7 +449,7 @@
             el.serviceAreasTableBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="empty-state-cell" style="color: var(--status-danger);">
-                        ✕ Unable to connect to server: ${escapeHtml(err.message)}
+                        Unable to connect to server: ${escapeHtml(err.message)}
                     </td>
                 </tr>
             `;
@@ -498,7 +498,7 @@
             return `
                 <tr data-area-id="${area.area_id}">
                     <td>
-                        <strong style="color: var(--text-primary); font-size: 14px;">📍 ${escapeHtml(area.area_name)}</strong>
+                        <strong style="color: var(--text-primary); font-size: 14px;">${escapeHtml(area.area_name)}</strong>
                     </td>
                     <td>${escapeHtml(area.city)}</td>
                     <td>${escapeHtml(area.state)}</td>
@@ -506,7 +506,7 @@
                     <td style="text-align: center;">
                         <div class="table-actions" style="justify-content: center; gap: 6px;">
                             <button type="button" class="btn-table-action btn-view btn-edit-area" data-area-id="${area.area_id}" title="Edit service area">
-                                ✏️ Edit
+                                Edit
                             </button>
                             <button type="button" class="btn-table-action ${toggleBtnClass} btn-toggle-area" data-area-id="${area.area_id}" data-current-status="${area.status}">
                                 ${toggleActionText}

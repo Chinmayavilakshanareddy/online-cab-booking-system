@@ -62,8 +62,7 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        toast.textContent = message;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -274,7 +273,7 @@
                 <div class="driver-info-cell">
                     <span class="driver-name">${escapeHtml(driver.name)} <strong style="color: var(--text-secondary); font-size: 11px;">#${driver.driver_id}</strong></span>
                     <span class="driver-sub">${escapeHtml(driver.email)}</span>
-                    <span class="driver-sub">📞 ${escapeHtml(driver.phone || 'N/A')}</span>
+                    <span class="driver-sub">Phone: ${escapeHtml(driver.phone || 'N/A')}</span>
                 </div>
             </td>
             <td>
@@ -291,7 +290,7 @@
             </td>
             <td>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <span class="rating-badge">★ ${rating}</span>
+                    <span class="rating-badge">${rating} / 5</span>
                     <small style="color: var(--text-muted); font-size: 11px;">${tripsCount} ${tripsCount === 1 ? 'trip' : 'trips'}</small>
                 </div>
             </td>
@@ -442,8 +441,7 @@
             if (drivers.length === 0) {
                 el.driversList.innerHTML = `
                     <tr>
-                        <td colspan="6" class="empty-state">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🚖</div>
+                        <td colspan="7" class="empty-state">
                             <strong>No driver partners found</strong>
                             <p style="margin-top: 4px; color: var(--text-muted); font-size: 12px;">
                                 ${state.search || state.status !== "all" 
@@ -474,8 +472,7 @@
             console.error("Error fetching drivers:", err);
             el.driversList.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state" style="color: var(--status-danger);">
-                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
+                    <td colspan="7" class="empty-state" style="color: var(--status-danger);">
                         <strong>Failed to load driver partners</strong>
                         <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">${escapeHtml(err.message)}</p>
                         <button type="button" class="btn-secondary" style="margin-top: 12px;" onclick="window.RideNowDrivers.reload()">Try Again</button>
@@ -487,7 +484,7 @@
             state.isLoading = false;
             if (el.refreshBtn) {
                 el.refreshBtn.disabled = false;
-                el.refreshBtn.innerHTML = `<span>🔄</span> Refresh Data`;
+                el.refreshBtn.textContent = "Refresh Data";
             }
         }
     }

@@ -12,7 +12,7 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role">Admin</span>
             </a>
         </div>
@@ -20,34 +20,44 @@
         <nav class="sidebar-nav">
             <div class="nav-section-title">Core Management</div>
             <a href="admin-dashboard.html" class="nav-item">
-                <span class="icon">📊</span>
                 <span>Dashboard</span>
             </a>
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
             </a>
             <a href="manage-vehicles.html" class="nav-item">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
             <a href="manage-trips.html" class="nav-item active">
-                <span class="icon">🗺️</span>
                 <span>Trips &amp; Bookings</span>
             </a>
 
             <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
-                <span class="icon">📈</span>
                 <span>Reports &amp; Analytics</span>
+            </a>
+
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
         </nav>
 
@@ -58,7 +68,7 @@
                     <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
             </div>
         </div>
     </aside>
@@ -68,13 +78,11 @@
         <header class="admin-topbar">
             <div class="page-headline">
                 <h1>Trip &amp; Booking Management</h1>
-                <p>Monitor live rides, audit completed trips, inspect fare calculations, and resolve booking issues.</p>
+                <p>Monitor live rides, audit completed trips, inspect fare calculations, and manage bookings.</p>
             </div>
             <div class="topbar-actions">
-                <button class="btn-secondary" id="refreshBtn" title="Refresh">
-                    <span>🔄</span> Refresh
-                </button>
-                <a href="admin-dashboard.html" class="btn-secondary">← Dashboard</a>
+                <button class="btn-secondary" id="refreshBtn" title="Refresh">Refresh</button>
+                <a href="admin-dashboard.html" class="btn-secondary">Back to Dashboard</a>
             </div>
         </header>
 
@@ -85,34 +93,30 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Trips</span>
-                        <div class="stat-icon-wrap icon-primary">🗺️</div>
                     </div>
                     <div class="stat-value" id="statTotalTrips">-</div>
                     <div class="stat-meta">All-time booking requests</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-title">In Progress / Live</span>
-                        <div class="stat-icon-wrap icon-info">🚖</div>
+                        <span class="stat-title">In Progress</span>
                     </div>
                     <div class="stat-value" id="statStartedTrips">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-info">Active</span> Currently on route</div>
+                    <div class="stat-meta">Currently ongoing rides</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Completed</span>
-                        <div class="stat-icon-wrap icon-success">✅</div>
                     </div>
                     <div class="stat-value" id="statCompletedTrips">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-success">Fulfilled</span> Safely reached destination</div>
+                    <div class="stat-meta">Safely fulfilled rides</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Cancelled</span>
-                        <div class="stat-icon-wrap icon-danger">✕</div>
                     </div>
                     <div class="stat-value" id="statCancelledTrips">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-danger">Aborted</span> Trip cancelled</div>
+                    <div class="stat-meta">Aborted bookings</div>
                 </div>
             </section>
 
@@ -128,17 +132,14 @@
                 <!-- Toolbar -->
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input
-                                type="search"
-                                id="searchInput"
-                                class="input-control"
-                                placeholder="Search by passenger, driver, pickup, dropoff, cab…"
-                                aria-label="Search trips"
-                                autocomplete="off"
-                            >
-                        </div>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            class="input-control"
+                            placeholder="Search by passenger, driver, pickup, destination..."
+                            aria-label="Search trips"
+                            autocomplete="off"
+                        >
                         <select id="statusFilter" class="select-control" aria-label="Filter by trip status">
                             <option value="all">All Statuses</option>
                             <option value="assigned">Assigned</option>
@@ -146,9 +147,7 @@
                             <option value="completed">Completed</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
-                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">
-                            <span>✕</span> Reset
-                        </button>
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">Reset</button>
                     </div>
                     <div class="table-toolbar-right">
                         <select id="limitFilter" class="select-control" aria-label="Items per page">
@@ -179,7 +178,7 @@
                             <tbody id="tripsList">
                                 <tr>
                                     <td colspan="8" class="empty-state">
-                                        <span class="loading-spinner"></span> Loading trips and bookings from database…
+                                        Loading trips and bookings from database...
                                     </td>
                                 </tr>
                             </tbody>

@@ -12,7 +12,7 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="superadmin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role badge-role-super">Super Admin</span>
             </a>
         </div>
@@ -20,55 +20,55 @@
         <nav class="sidebar-nav">
             <div class="nav-section-title">System Governance</div>
             <a href="superadmin-dashboard.html" class="nav-item">
-                <span class="icon">👑</span>
                 <span>Super Dashboard</span>
             </a>
             <a href="manage-admins.html" class="nav-item active">
-                <span class="icon">🛡️</span>
                 <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
 
             <div class="nav-section-title">Core Operations</div>
             <a href="admin-dashboard.html" class="nav-item">
-                <span class="icon">📊</span>
                 <span>Admin Dashboard</span>
             </a>
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
             </a>
             <a href="manage-vehicles.html" class="nav-item">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
             <a href="manage-trips.html" class="nav-item">
-                <span class="icon">🗺️</span>
                 <span>Trips &amp; Bookings</span>
             </a>
 
             <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
-                <span class="icon">📈</span>
                 <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar" id="superAdminAvatar" style="background: #7e22ce;">EV</div>
+                <div class="user-avatar" id="superAdminAvatar" style="background: #1e3a8a;">EV</div>
                 <div class="user-details">
                     <div class="user-name" id="superAdminName">Eleanor Vance (Super Admin)</div>
                     <div class="user-role-label">System Super Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
             </div>
         </div>
     </aside>
@@ -81,9 +81,9 @@
                 <p>Provision staff credentials, assign granular operational permissions, and govern administrative access.</p>
             </div>
             <div class="topbar-actions">
-                <button type="button" class="btn-primary" id="addAdminBtn">+ Add Administrator</button>
-                <a href="superadmin-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
-                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh list">🔄 Refresh</button>
+                <button type="button" class="btn-primary" id="addAdminBtn">Add Administrator</button>
+                <a href="superadmin-dashboard.html" class="btn-secondary">Back to Dashboard</a>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh list">Refresh</button>
             </div>
         </header>
 
@@ -94,7 +94,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Administrators</span>
-                        <div class="stat-icon">🛡️</div>
                     </div>
                     <div class="stat-value" id="statTotalAdmins">-</div>
                     <div class="stat-meta">
@@ -106,7 +105,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Super Administrators</span>
-                        <div class="stat-icon">👑</div>
                     </div>
                     <div class="stat-value" id="statSuperAdmins">-</div>
                     <div class="stat-meta">
@@ -118,7 +116,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Standard Admins</span>
-                        <div class="stat-icon">👥</div>
                     </div>
                     <div class="stat-value" id="statStandardAdmins">-</div>
                     <div class="stat-meta">
@@ -129,13 +126,12 @@
 
                 <article class="stat-card highlight">
                     <div class="stat-header">
-                        <span class="stat-title">Safe Deletion Policy</span>
-                        <div class="stat-icon">🔒</div>
+                        <span class="stat-title">Deletion Policy</span>
                     </div>
                     <div class="stat-value" style="font-size: 19px; font-weight: 700; color: #166534;">Protected Integrity</div>
                     <div class="stat-meta">
                         <span class="badge-pill badge-success">Enforced</span>
-                        <span>Self-lockout &amp; root guards</span>
+                        <span>Self-lockout and root guards</span>
                     </div>
                 </article>
             </div>
@@ -152,13 +148,10 @@
                 <!-- Toolbar -->
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="search" id="searchInput" placeholder="Search by name, email, or mobile..." autocomplete="off">
-                        </div>
+                        <input type="search" id="searchInput" class="input-control" placeholder="Search by name, email, or mobile..." autocomplete="off">
                         <div class="filter-group">
                             <label for="roleFilter">Role:</label>
-                            <select id="roleFilter">
+                            <select id="roleFilter" class="select-control">
                                 <option value="all">All Roles</option>
                                 <option value="super_admin">Super Admin Only</option>
                                 <option value="admin">Standard Admin Only</option>
@@ -166,13 +159,13 @@
                         </div>
                         <div class="filter-group">
                             <label for="statusFilter">Status:</label>
-                            <select id="statusFilter">
+                            <select id="statusFilter" class="select-control">
                                 <option value="all">All Statuses</option>
                                 <option value="active">Active Only</option>
                                 <option value="inactive">Inactive Only</option>
                             </select>
                         </div>
-                        <button type="button" class="btn-filter-reset" id="resetFiltersBtn">Reset Filters</button>
+                        <button type="button" class="btn-filter-reset" id="resetFiltersBtn">Reset</button>
                     </div>
                     <div class="table-toolbar-right">
                         <span class="results-count" id="adminResultsCount">Loading administrators...</span>
@@ -196,7 +189,7 @@
                             </thead>
                             <tbody id="adminsTableBody">
                                 <tr>
-                                    <td colspan="7" class="empty-state-cell">Loading administrators from database...</td>
+                                    <td colspan="7" class="empty-state">Loading administrators from database...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -212,7 +205,7 @@
         <div class="modal-box" style="max-width: 680px;">
             <div class="modal-header">
                 <h2 id="modalTitle">Create Administrator Account</h2>
-                <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">&times;</button>
+                <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">Close</button>
             </div>
             <form id="adminForm" novalidate>
                 <input type="hidden" id="editAdminId">
@@ -221,28 +214,28 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="fName">Full Name <span class="req">*</span></label>
-                        <input type="text" id="fName" placeholder="e.g. Rachel Adams" required>
+                        <input type="text" id="fName" class="input-control" placeholder="e.g. Rachel Adams" required>
                     </div>
 
                     <div class="form-group">
                         <label for="fEmail">Email Address <span class="req">*</span></label>
-                        <input type="email" id="fEmail" placeholder="e.g. rachel@ridenow.com" required>
+                        <input type="email" id="fEmail" class="input-control" placeholder="e.g. rachel@ridenow.com" required>
                     </div>
 
                     <div class="form-group">
                         <label for="fMobile">Mobile Number <span class="req">*</span></label>
-                        <input type="tel" id="fMobile" placeholder="10-digit number e.g. 9876543210" pattern="[0-9]{10}" required>
+                        <input type="tel" id="fMobile" class="input-control" placeholder="10-digit number e.g. 9876543210" pattern="[0-9]{10}" required>
                     </div>
 
                     <div class="form-group">
                         <label for="fPassword">Password <span class="req" id="pwdReq">*</span></label>
-                        <input type="password" id="fPassword" placeholder="Minimum 6 characters">
+                        <input type="password" id="fPassword" class="input-control" placeholder="Minimum 6 characters">
                         <span class="field-hint" id="pwdHint">Required for new accounts. Leave blank to retain current password.</span>
                     </div>
 
                     <div class="form-group">
                         <label for="fRole">System Role <span class="req">*</span></label>
-                        <select id="fRole" required>
+                        <select id="fRole" class="select-control" required>
                             <option value="admin">Administrator (Role-Based Permissions)</option>
                             <option value="super_admin">Super Administrator (Full System Control)</option>
                         </select>
@@ -250,7 +243,7 @@
 
                     <div class="form-group">
                         <label for="fStatus">Account Status <span class="req">*</span></label>
-                        <select id="fStatus" required>
+                        <select id="fStatus" class="select-control" required>
                             <option value="active">Active (Permitted to log in)</option>
                             <option value="inactive">Inactive (Access suspended)</option>
                         </select>
@@ -263,31 +256,31 @@
                         <div class="permission-checkbox-grid">
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="manage_passengers" checked>
-                                <span>👥 Manage Passengers</span>
+                                <span>Manage Passengers</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="manage_drivers" checked>
-                                <span>🚖 Manage Drivers</span>
+                                <span>Manage Drivers</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="manage_vehicles" checked>
-                                <span>🚗 Manage Vehicles</span>
+                                <span>Manage Vehicles</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="manage_trips" checked>
-                                <span>🗺️ Manage Trips &amp; Bookings</span>
+                                <span>Manage Trips &amp; Bookings</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="manage_fares" checked>
-                                <span>💳 Fare Rules &amp; Areas</span>
+                                <span>Fare Rules &amp; Areas</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="view_reports" checked>
-                                <span>📈 Reports &amp; Analytics</span>
+                                <span>Reports &amp; Analytics</span>
                             </label>
                             <label class="permission-checkbox-label">
                                 <input type="checkbox" name="permissions" value="system_settings">
-                                <span>⚙️ System Audit Logs</span>
+                                <span>System Audit Logs</span>
                             </label>
                         </div>
                     </div>
@@ -305,8 +298,8 @@
     <div class="modal-overlay" id="deleteModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
         <div class="modal-box" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 id="deleteModalTitle" style="color: var(--status-danger);">⚠️ Safe Administrator Deletion</h2>
-                <button type="button" class="modal-close-btn" id="deleteModalCloseBtn" aria-label="Close modal">&times;</button>
+                <h2 id="deleteModalTitle" style="color: var(--status-danger);">Safe Administrator Deletion</h2>
+                <button type="button" class="modal-close-btn" id="deleteModalCloseBtn" aria-label="Close modal">Close</button>
             </div>
             <div style="padding: 24px;">
                 <p style="font-size: 14px; color: var(--text-primary); margin-bottom: 12px;">
@@ -339,4 +332,3 @@
     <script src="../public/js/manage-admins.js"></script>
 </body>
 </html>
-

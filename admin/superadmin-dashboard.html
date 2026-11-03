@@ -12,7 +12,7 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="superadmin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role badge-role-super">Super Admin</span>
             </a>
         </div>
@@ -20,55 +20,55 @@
         <nav class="sidebar-nav">
             <div class="nav-section-title">System Governance</div>
             <a href="superadmin-dashboard.html" class="nav-item active">
-                <span class="icon">👑</span>
                 <span>Super Dashboard</span>
             </a>
             <a href="manage-admins.html" class="nav-item">
-                <span class="icon">🛡️</span>
                 <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
 
             <div class="nav-section-title">Core Operations</div>
             <a href="admin-dashboard.html" class="nav-item">
-                <span class="icon">📊</span>
                 <span>Admin Dashboard</span>
             </a>
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
             </a>
             <a href="manage-vehicles.html" class="nav-item">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
             <a href="manage-trips.html" class="nav-item">
-                <span class="icon">🗺️</span>
                 <span>Trips &amp; Bookings</span>
             </a>
 
             <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
-                <span class="icon">📈</span>
                 <span>Reports &amp; Analytics</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-profile-widget">
-                <div class="user-avatar" id="superAdminAvatar" style="background: #7e22ce;">EV</div>
+                <div class="user-avatar" id="superAdminAvatar" style="background: #1e3a8a;">EV</div>
                 <div class="user-details">
                     <div class="user-name" id="superAdminName">Eleanor Vance (Super Admin)</div>
                     <div class="user-role-label">System Super Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
             </div>
         </div>
     </aside>
@@ -85,8 +85,8 @@
                     <span class="health-pulse-dot"></span>
                     <span>System Online</span>
                 </div>
-                <a href="manage-admins.html" class="btn-primary">+ Manage Admins</a>
-                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh dashboard data">🔄 Refresh</button>
+                <a href="manage-admins.html" class="btn-primary">Manage Admins</a>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh dashboard data">Refresh</button>
             </div>
         </header>
 
@@ -98,7 +98,6 @@
                 <article class="stat-card highlight">
                     <div class="stat-header">
                         <span class="stat-title">Platform Gross Revenue</span>
-                        <div class="stat-icon">💰</div>
                     </div>
                     <div class="stat-value" id="statGrossRevenue">₹0.00</div>
                     <div class="stat-meta">
@@ -111,7 +110,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Platform Users</span>
-                        <div class="stat-icon">👥</div>
                     </div>
                     <div class="stat-value" id="statTotalUsers">0</div>
                     <div class="stat-meta">
@@ -124,7 +122,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Fleet &amp; Driver Force</span>
-                        <div class="stat-icon">🚖</div>
                     </div>
                     <div class="stat-value" id="statApprovedDrivers">0 Approved</div>
                     <div class="stat-meta">
@@ -137,7 +134,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Platform Trips Handled</span>
-                        <div class="stat-icon">🗺️</div>
                     </div>
                     <div class="stat-value" id="statTotalTrips">0</div>
                     <div class="stat-meta">
@@ -150,7 +146,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Administrator Staff</span>
-                        <div class="stat-icon">🛡️</div>
                     </div>
                     <div class="stat-value" id="statTotalAdmins">0 Staff</div>
                     <div class="stat-meta">
@@ -163,7 +158,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Server Runtime &amp; DB</span>
-                        <div class="stat-icon">⚡</div>
                     </div>
                     <div class="stat-value" id="statUptime">Uptime: 0h 0m</div>
                     <div class="stat-meta">
@@ -185,7 +179,6 @@
                 <div class="card-body">
                     <div class="system-alerts-container" id="systemAlertsContainer">
                         <div class="system-alert-item alert-info">
-                            <span class="alert-icon">ℹ️</span>
                             <div class="alert-content">
                                 <div class="alert-title">Initializing System Alerts Engine...</div>
                                 <div class="alert-desc">Scanning database entities, fleet status, and audit logs.</div>
@@ -203,20 +196,17 @@
                         <p>Complete record of administrative interventions, driver approvals, pricing modifications, and security actions.</p>
                     </div>
                     <div class="table-actions">
-                        <button type="button" class="btn-secondary" id="refreshLogsBtn">🔄 Refresh Logs</button>
+                        <button type="button" class="btn-secondary" id="refreshLogsBtn">Refresh Logs</button>
                     </div>
                 </div>
 
                 <!-- Toolbar -->
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="search" id="logSearchInput" placeholder="Filter by admin, action, or description..." autocomplete="off">
-                        </div>
+                        <input type="search" id="logSearchInput" class="input-control" placeholder="Filter by admin, action, or description..." autocomplete="off">
                         <div class="filter-group">
                             <label for="actionFilter">Action:</label>
-                            <select id="actionFilter">
+                            <select id="actionFilter" class="select-control">
                                 <option value="all">All Actions</option>
                                 <option value="ADMIN_CREATED">Admin Created</option>
                                 <option value="ADMIN_UPDATED">Admin Updated</option>
@@ -232,7 +222,7 @@
                                 <option value="USER_LOGIN">User Login</option>
                             </select>
                         </div>
-                        <button type="button" class="btn-filter-reset" id="resetLogFiltersBtn">Reset Filters</button>
+                        <button type="button" class="btn-filter-reset" id="resetLogFiltersBtn">Reset</button>
                     </div>
                     <div class="table-toolbar-right">
                         <span class="results-count" id="logResultsCount">Loading audit logs...</span>
@@ -253,7 +243,7 @@
                             </thead>
                             <tbody id="logsTableBody">
                                 <tr>
-                                    <td colspan="5" class="empty-state-cell">Loading administrative audit records...</td>
+                                    <td colspan="5" class="empty-state">Loading administrative audit records...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -269,4 +259,3 @@
     <script src="../public/js/superadmin-dashboard.js"></script>
 </body>
 </html>
-

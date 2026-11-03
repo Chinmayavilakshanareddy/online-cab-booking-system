@@ -64,6 +64,47 @@ function getSessionToken(req) {
     return getCookie(req, "session_token");
 }
 
+async function getAuthenticatedUser(req) {
+    const sessionToken = getSessionToken(req);
+    if (!sessionToken || !activeSessions.has(sessionToken)) {
+        return null;
+    }
+    const session = activeSessions.get(sessionToken);
+    if (session.expiresAt && session.expiresAt < Date.now()) {
+        activeSessions.delete(sessionToken);
+        return null;
+    }
+    return session;
+}
+
+function checkPermission(session, permissionName) {
+    if (!session) return false;
+    if (session.role === "super_admin") return true;
+    if (Array.isArray(session.permissions) && session.permissions.includes(permissionName)) {
+        return true;
+    }
+    return false;
+}
+
+async function enforceAdminPermission(req, res, permissionName) {
+    const session = await getAuthenticatedUser(req);
+    if (!session) {
+        sendJson(res, 401, { success: false, message: "Authentication required. Please log in as an administrator." });
+        return null;
+    }
+    if (session.role === "super_admin") {
+        return session;
+    }
+    if (session.role === "admin" && Array.isArray(session.permissions) && session.permissions.includes(permissionName)) {
+        return session;
+    }
+    sendJson(res, 403, {
+        success: false,
+        message: `Access denied. You do not have the required permission '${permissionName}' to perform this action.`
+    });
+    return null;
+}
+
 // System log helper
 async function logActivity(userId, action, description, ipAddress = "127.0.0.1") {
     try {
@@ -75,6 +116,49 @@ async function logActivity(userId, action, description, ipAddress = "127.0.0.1")
         console.error("Failed to write system log:", e.message);
     }
 }
+
+// Ensure system_settings table exists and is populated with default configuration
+async function ensureSystemSettingsTable() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS system_settings (
+                setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
+                setting_value TEXT NOT NULL,
+                setting_label VARCHAR(200) NOT NULL,
+                setting_group VARCHAR(100) NOT NULL DEFAULT 'general',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                updated_by INT DEFAULT NULL,
+                CONSTRAINT fk_setting_user FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        const [rows] = await pool.query(`SELECT COUNT(*) AS count FROM system_settings`);
+        if (rows[0].count === 0) {
+            const defaults = [
+                ["platform_name", "RideNow", "Platform Name", "general"],
+                ["support_email", "support@ridenow.com", "Support Email Address", "general"],
+                ["booking_enabled", "true", "Ride Booking System Active", "general"],
+                ["maintenance_mode", "false", "Platform Maintenance Mode", "general"],
+                ["driver_registration_enabled", "true", "Driver Self-Registration Enabled", "general"],
+                ["max_booking_days_ahead", "30", "Maximum Booking Advance Days", "operations"],
+                ["cancellation_window_minutes", "60", "Free Cancellation Window (Minutes)", "operations"],
+                ["default_vehicle_type", "Sedan", "Default Selected Vehicle Category", "operations"],
+                ["min_fare_amount", "50", "Platform Minimum Fare Floor (₹)", "operations"],
+                ["surge_multiplier_max", "2.5", "Maximum Surge Pricing Multiplier", "operations"]
+            ];
+            for (const [key, val, lbl, grp] of defaults) {
+                await pool.execute(
+                    `INSERT IGNORE INTO system_settings (setting_key, setting_value, setting_label, setting_group) VALUES (?, ?, ?, ?)`,
+                    [key, val, lbl, grp]
+                );
+            }
+        }
+    } catch (e) {
+        console.error("System settings initialization error:", e.message);
+    }
+}
+ensureSystemSettingsTable();
+
 
 // Static file server
 function serveStaticFile(req, res, pathname) {
@@ -1363,6 +1447,14 @@ const server = http.createServer(async (req, res) => {
 
         // 5. Driver Management Actions API (Approve, Reject, Block, Unblock, Status Transitions)
         if ((req.method === "POST" || req.method === "PATCH") && pathname.startsWith("/api/admin/drivers/")) {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_drivers")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_drivers' permission required for driver verification and status management."
+                });
+            }
+
             const parts = pathname.split("/").filter(Boolean);
             const driverId = parseInt(parts[3], 10);
             const actionType = (parts[4] || "status").toLowerCase();
@@ -1685,6 +1777,14 @@ const server = http.createServer(async (req, res) => {
 
         // 7. Admin Update Passenger Status
         if ((req.method === "PATCH" || req.method === "POST") && pathname.startsWith("/api/admin/passengers/")) {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_passengers")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_passengers' permission required for passenger administration."
+                });
+            }
+
             const parts = pathname.split("/").filter(Boolean);
             const passengerIdParam = parseInt(parts[3], 10);
             const subAction = parts[4] || "status";
@@ -1867,6 +1967,14 @@ const server = http.createServer(async (req, res) => {
 
         // 8b. POST /api/admin/vehicles - Register new vehicle
         if (req.method === "POST" && pathname === "/api/admin/vehicles") {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_vehicles")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_vehicles' permission required for vehicle registration."
+                });
+            }
+
             const body = await readJson(req);
             let { driver_id, vehicle_number, vehicle_type, model, capacity, status } = body;
 
@@ -1954,6 +2062,14 @@ const server = http.createServer(async (req, res) => {
 
         // 8c. PATCH /api/admin/vehicles/:id/status - Quick vehicle status update
         if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/vehicles\/\d+\/status$/)) {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_vehicles")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_vehicles' permission required for vehicle status modifications."
+                });
+            }
+
             const parts = pathname.split("/").filter(Boolean);
             const vehicleId = parseInt(parts[3], 10);
             const body = await readJson(req);
@@ -2233,6 +2349,14 @@ const server = http.createServer(async (req, res) => {
 
         // 9b. PATCH /api/admin/trips/:id/status - Handle booking issues and valid status changes
         if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/trips\/\d+\/status$/)) {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_trips")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_trips' permission required for trip status management."
+                });
+            }
+
             const parts = pathname.split("/").filter(Boolean);
             const tripId = parseInt(parts[3], 10);
             const body = await readJson(req);
@@ -2491,6 +2615,14 @@ const server = http.createServer(async (req, res) => {
 
         // 11b. POST /api/admin/fare-rules - Add new fare rule
         if (req.method === "POST" && pathname === "/api/admin/fare-rules") {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_fares")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_fares' permission required for fare rule management."
+                });
+            }
+
             const body = await readJson(req);
             const vehicleType = (body.vehicle_type || "").trim();
             const baseFare = parseFloat(body.base_fare);
@@ -2684,6 +2816,14 @@ const server = http.createServer(async (req, res) => {
 
         // 12b. POST /api/admin/service-areas - Add service area
         if (req.method === "POST" && pathname === "/api/admin/service-areas") {
+            const adminSession = await getAuthenticatedUser(req);
+            if (adminSession && !checkPermission(adminSession, "manage_fares")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You lack the 'manage_fares' permission required for service area management."
+                });
+            }
+
             const body = await readJson(req);
             const areaName = (body.area_name || "").trim();
             const city = (body.city || "").trim();
@@ -3302,12 +3442,15 @@ const server = http.createServer(async (req, res) => {
             });
         }
 
-        // 14b. GET /api/superadmin/logs - Filterable System Audit Log
-        if (req.method === "GET" && pathname === "/api/superadmin/logs") {
+        // 14b. GET /api/superadmin/logs & /api/admin/logs - Filterable System Audit Log
+        if (req.method === "GET" && (pathname === "/api/superadmin/logs" || pathname === "/api/admin/logs")) {
             const search = (parsedUrl.searchParams.get("search") || "").trim();
             const action = (parsedUrl.searchParams.get("action") || "all").trim();
+            const adminId = (parsedUrl.searchParams.get("adminId") || parsedUrl.searchParams.get("userId") || "all").trim();
+            const dateFrom = (parsedUrl.searchParams.get("dateFrom") || "").trim();
+            const dateTo = (parsedUrl.searchParams.get("dateTo") || "").trim();
             const page = Math.max(1, parseInt(parsedUrl.searchParams.get("page") || "1", 10) || 1);
-            const limit = Math.max(1, Math.min(100, parseInt(parsedUrl.searchParams.get("limit") || "25", 10) || 25));
+            const limit = Math.max(1, Math.min(200, parseInt(parsedUrl.searchParams.get("limit") || "25", 10) || 25));
             const offset = (page - 1) * limit;
 
             const whereClauses = ["1=1"];
@@ -3316,6 +3459,25 @@ const server = http.createServer(async (req, res) => {
             if (action && action !== "all") {
                 whereClauses.push("sl.action = ?");
                 params.push(action);
+            }
+
+            if (adminId && adminId !== "all") {
+                if (adminId === "system") {
+                    whereClauses.push("sl.user_id IS NULL");
+                } else if (!isNaN(parseInt(adminId, 10))) {
+                    whereClauses.push("sl.user_id = ?");
+                    params.push(parseInt(adminId, 10));
+                }
+            }
+
+            if (dateFrom) {
+                whereClauses.push("DATE(sl.created_at) >= ?");
+                params.push(dateFrom);
+            }
+
+            if (dateTo) {
+                whereClauses.push("DATE(sl.created_at) <= ?");
+                params.push(dateTo);
             }
 
             if (search) {
@@ -3344,6 +3506,7 @@ const server = http.createServer(async (req, res) => {
                     sl.ip_address,
                     sl.created_at,
                     DATE_FORMAT(sl.created_at, '%b %d, %Y, %h:%i %p') AS formatted_time,
+                    DATE_FORMAT(sl.created_at, '%Y-%m-%d') AS date_only,
                     COALESCE(u.name, 'System') AS user_name,
                     COALESCE(u.email, 'system@ridenow.local') AS user_email,
                     COALESCE(u.role, 'system') AS user_role
@@ -3355,6 +3518,27 @@ const server = http.createServer(async (req, res) => {
                 [...params, limit, offset]
             );
 
+            // Calculate overall KPI summary for system logs
+            const [summaryRows] = await pool.query(
+                `SELECT 
+                    COUNT(*) AS total_logs,
+                    COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END), 0) AS today_count,
+                    COUNT(DISTINCT user_id) AS unique_actors,
+                    DATE_FORMAT(MAX(created_at), '%b %d, %Y, %h:%i %p') AS latest_activity
+                 FROM system_logs`
+            );
+
+            // Get unique actions and unique admins for filter dropdowns
+            const [distinctActions] = await pool.query(
+                `SELECT DISTINCT action FROM system_logs ORDER BY action ASC`
+            );
+            const [distinctActors] = await pool.query(
+                `SELECT DISTINCT u.user_id, u.name, u.role
+                 FROM system_logs sl
+                 JOIN users u ON sl.user_id = u.user_id
+                 ORDER BY u.name ASC`
+            );
+
             return sendJson(res, 200, {
                 success: true,
                 logs: logs,
@@ -3363,6 +3547,16 @@ const server = http.createServer(async (req, res) => {
                     page: page,
                     limit: limit,
                     totalPages: Math.ceil(total / limit) || 1
+                },
+                summary: {
+                    total_logs: Number(summaryRows[0].total_logs || 0),
+                    today_count: Number(summaryRows[0].today_count || 0),
+                    unique_actors: Number(summaryRows[0].unique_actors || 0),
+                    latest_activity: summaryRows[0].latest_activity || "No activity yet"
+                },
+                filter_options: {
+                    actions: distinctActions.map(r => r.action),
+                    actors: distinctActors.map(r => ({ user_id: r.user_id, name: r.name, role: r.role }))
                 }
             });
         }
@@ -3786,6 +3980,455 @@ const server = http.createServer(async (req, res) => {
                 connection.release();
             }
         }
+
+        // ========================================================
+        // 16. PERMISSIONS MANAGEMENT
+        // ========================================================
+
+        // Standard defined platform permissions catalog
+        const SYSTEM_PERMISSIONS_CATALOG = [
+            { key: "manage_passengers", label: "Manage Passengers", icon: "👥", description: "View, activate, block, or modify passenger accounts" },
+            { key: "manage_drivers", label: "Manage Drivers", icon: "🚖", description: "Review driver licenses, approve, reject, or suspend driver profiles" },
+            { key: "manage_vehicles", label: "Manage Vehicles", icon: "🚗", description: "Register, inspect, and maintain fleet vehicle records" },
+            { key: "manage_trips", label: "Manage Trips & Bookings", icon: "🗺️", description: "Monitor active rides, dispatch, and resolve booking issues" },
+            { key: "manage_fares", label: "Fare Rules & Service Areas", icon: "💳", description: "Configure vehicle pricing models, surge rates, and operational zones" },
+            { key: "view_reports", label: "Reports & Analytics", icon: "📈", description: "Access financial reports, driver earnings, and business analytics" },
+            { key: "system_settings", label: "System Settings & Logs", icon: "⚙️", description: "Govern application parameters and inspect system audit logs" }
+        ];
+
+        // 16a. GET /api/admin/permissions - List permissions for all administrators
+        if (req.method === "GET" && pathname === "/api/admin/permissions") {
+            const adminIdParam = parsedUrl.searchParams.get("admin_id");
+            let whereClause = "u.role IN ('admin', 'super_admin')";
+            const params = [];
+
+            if (adminIdParam && !isNaN(parseInt(adminIdParam, 10))) {
+                whereClause += " AND u.user_id = ?";
+                params.push(parseInt(adminIdParam, 10));
+            }
+
+            const querySql = `
+                SELECT 
+                    u.user_id,
+                    u.name,
+                    u.email,
+                    u.mobile,
+                    u.role,
+                    u.status,
+                    u.created_at,
+                    DATE_FORMAT(u.created_at, '%b %d, %Y') AS formatted_created,
+                    COALESCE(GROUP_CONCAT(ap.permission_name SEPARATOR ','), '') AS permissions_str,
+                    (SELECT COUNT(*) FROM system_logs sl WHERE sl.user_id = u.user_id) AS total_actions
+                FROM users u
+                LEFT JOIN admin_permissions ap ON u.user_id = ap.admin_id
+                WHERE ${whereClause}
+                GROUP BY u.user_id, u.name, u.email, u.mobile, u.role, u.status, u.created_at
+                ORDER BY (u.role = 'super_admin') DESC, u.user_id ASC
+            `;
+
+            const [adminRows] = await pool.query(querySql, params);
+
+            let totalPermsCount = 0;
+            let fullAccessCount = 0;
+            let restrictedCount = 0;
+
+            const admins = adminRows.map(a => {
+                const perms = a.role === "super_admin"
+                    ? SYSTEM_PERMISSIONS_CATALOG.map(p => p.key)
+                    : (a.permissions_str ? a.permissions_str.split(",").filter(Boolean) : []);
+
+                if (a.role === "super_admin" || perms.length === SYSTEM_PERMISSIONS_CATALOG.length) {
+                    fullAccessCount++;
+                } else {
+                    restrictedCount++;
+                }
+                totalPermsCount += perms.length;
+
+                return {
+                    user_id: a.user_id,
+                    name: a.name,
+                    email: a.email,
+                    mobile: a.mobile,
+                    role: a.role,
+                    status: a.status,
+                    created_at: a.created_at,
+                    formatted_created: a.formatted_created,
+                    permissions: perms,
+                    is_full_access: a.role === "super_admin" || perms.length === SYSTEM_PERMISSIONS_CATALOG.length,
+                    total_actions: Number(a.total_actions || 0)
+                };
+            });
+
+            return sendJson(res, 200, {
+                success: true,
+                admins: admins,
+                available_permissions: SYSTEM_PERMISSIONS_CATALOG,
+                summary: {
+                    total_admins: admins.length,
+                    super_admins: admins.filter(a => a.role === "super_admin").length,
+                    standard_admins: admins.filter(a => a.role === "admin").length,
+                    full_access_count: fullAccessCount,
+                    restricted_count: restrictedCount,
+                    total_permissions_granted: totalPermsCount
+                }
+            });
+        }
+
+        // 16b. GET /api/admin/permissions/:id - Specific administrator permissions
+        if (req.method === "GET" && pathname.match(/^\/api\/admin\/permissions\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const targetId = parseInt(parts[3], 10);
+
+            const [adminRows] = await pool.execute(
+                `SELECT u.user_id, u.name, u.email, u.mobile, u.role, u.status,
+                        DATE_FORMAT(u.created_at, '%b %d, %Y') AS formatted_created,
+                        COALESCE(GROUP_CONCAT(ap.permission_name SEPARATOR ','), '') AS permissions_str
+                 FROM users u
+                 LEFT JOIN admin_permissions ap ON u.user_id = ap.admin_id
+                 WHERE u.user_id = ? AND u.role IN ('admin', 'super_admin')
+                 GROUP BY u.user_id, u.name, u.email, u.mobile, u.role, u.status, u.created_at`,
+                [targetId]
+            );
+
+            if (adminRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Administrator account not found." });
+            }
+
+            const admin = adminRows[0];
+            const perms = admin.role === "super_admin"
+                ? SYSTEM_PERMISSIONS_CATALOG.map(p => p.key)
+                : (admin.permissions_str ? admin.permissions_str.split(",").filter(Boolean) : []);
+
+            return sendJson(res, 200, {
+                success: true,
+                admin: {
+                    user_id: admin.user_id,
+                    name: admin.name,
+                    email: admin.email,
+                    mobile: admin.mobile,
+                    role: admin.role,
+                    status: admin.status,
+                    formatted_created: admin.formatted_created,
+                    permissions: perms,
+                    is_full_access: admin.role === "super_admin" || perms.length === SYSTEM_PERMISSIONS_CATALOG.length
+                },
+                available_permissions: SYSTEM_PERMISSIONS_CATALOG
+            });
+        }
+
+        // 16c. PATCH / POST /api/admin/permissions/:id - Update administrator permissions
+        if ((req.method === "PATCH" || req.method === "POST") && pathname.match(/^\/api\/admin\/permissions\/\d+$/)) {
+            const parts = pathname.split("/").filter(Boolean);
+            const targetId = parseInt(parts[3], 10);
+            const body = await readJson(req);
+
+            const session = await getAuthenticatedUser(req);
+            // Permissions update requires super_admin or user with system_settings permission
+            if (session && session.role !== "super_admin" && !checkPermission(session, "system_settings")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. Only Super Administrators or users with 'system_settings' permission can modify access roles."
+                });
+            }
+
+            const [adminRows] = await pool.execute(
+                `SELECT user_id, name, email, role, status FROM users WHERE user_id = ? AND role IN ('admin', 'super_admin')`,
+                [targetId]
+            );
+
+            if (adminRows.length === 0) {
+                return sendJson(res, 404, { success: false, message: "Administrator not found." });
+            }
+
+            const targetAdmin = adminRows[0];
+
+            if (targetAdmin.role === "super_admin") {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Super Administrators automatically hold root platform access; individual permissions cannot be restricted."
+                });
+            }
+
+            if (!Array.isArray(body.permissions)) {
+                return sendJson(res, 400, { success: false, message: "Permissions must be an array of valid permission names." });
+            }
+
+            const validKeys = SYSTEM_PERMISSIONS_CATALOG.map(p => p.key);
+            const filteredPerms = body.permissions.filter(p => validKeys.includes(p));
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                await connection.execute(`DELETE FROM admin_permissions WHERE admin_id = ?`, [targetId]);
+
+                for (const perm of filteredPerms) {
+                    await connection.execute(
+                        `INSERT INTO admin_permissions (admin_id, permission_name) VALUES (?, ?)`,
+                        [targetId, perm]
+                    );
+                }
+
+                await connection.commit();
+
+                // Synchronize active session if this admin is currently logged in
+                for (const [token, sess] of activeSessions.entries()) {
+                    if (sess.user_id === targetId) {
+                        sess.permissions = filteredPerms;
+                        activeSessions.set(token, sess);
+                    }
+                }
+
+                const actorName = session ? session.name : "System";
+                const actorId = session ? session.user_id : null;
+                const permSummary = filteredPerms.length > 0 ? filteredPerms.join(", ") : "None (Access Revoked)";
+
+                await logActivity(
+                    actorId,
+                    "PERMISSIONS_UPDATED",
+                    `Updated permissions for administrator ${targetAdmin.name} (#${targetId}, ${targetAdmin.email}) to: [${permSummary}]. Action performed by ${actorName}.`,
+                    clientIp
+                );
+
+                return sendJson(res, 200, {
+                    success: true,
+                    message: `Permissions for ${targetAdmin.name} updated successfully (${filteredPerms.length} assigned).`,
+                    admin_id: targetId,
+                    permissions: filteredPerms
+                });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        }
+
+        // ========================================================
+        // 17. SYSTEM SETTINGS MANAGEMENT
+        // ========================================================
+
+        // 17a. GET /api/admin/settings - Retrieve platform-wide settings
+        if (req.method === "GET" && pathname === "/api/admin/settings") {
+            await ensureSystemSettingsTable();
+
+            const [settingRows] = await pool.query(
+                `SELECT 
+                    s.setting_key,
+                    s.setting_value,
+                    s.setting_label,
+                    s.setting_group,
+                    DATE_FORMAT(s.updated_at, '%b %d, %Y, %h:%i %p') AS formatted_updated_at,
+                    s.updated_by,
+                    COALESCE(u.name, 'Default System') AS updater_name
+                 FROM system_settings s
+                 LEFT JOIN users u ON s.updated_by = u.user_id
+                 ORDER BY s.setting_group ASC, s.setting_key ASC`
+            );
+
+            // Also get recent settings change logs
+            const [recentSettingLogs] = await pool.query(
+                `SELECT 
+                    sl.log_id,
+                    sl.description,
+                    sl.ip_address,
+                    DATE_FORMAT(sl.created_at, '%b %d, %Y, %h:%i %p') AS formatted_time,
+                    COALESCE(u.name, 'Administrator') AS user_name
+                 FROM system_logs sl
+                 LEFT JOIN users u ON sl.user_id = u.user_id
+                 WHERE sl.action = 'SETTINGS_UPDATED'
+                 ORDER BY sl.log_id DESC
+                 LIMIT 10`
+            );
+
+            const grouped = {
+                general: [],
+                operations: []
+            };
+
+            const flat = {};
+
+            for (const row of settingRows) {
+                const item = {
+                    key: row.setting_key,
+                    value: row.setting_value,
+                    label: row.setting_label,
+                    group: row.setting_group,
+                    updated_at: row.formatted_updated_at,
+                    updater_name: row.updater_name
+                };
+                if (!grouped[row.setting_group]) {
+                    grouped[row.setting_group] = [];
+                }
+                grouped[row.setting_group].push(item);
+                flat[row.setting_key] = row.setting_value;
+            }
+
+            return sendJson(res, 200, {
+                success: true,
+                settings: grouped,
+                flat: flat,
+                change_history: recentSettingLogs
+            });
+        }
+
+        // 17b. POST / PUT /api/admin/settings - Validate & update system settings
+        if ((req.method === "POST" || req.method === "PUT") && pathname === "/api/admin/settings") {
+            await ensureSystemSettingsTable();
+
+            const session = await getAuthenticatedUser(req);
+            // Verify permission
+            if (session && session.role !== "super_admin" && !checkPermission(session, "system_settings")) {
+                return sendJson(res, 403, {
+                    success: false,
+                    message: "Access denied. You require the 'system_settings' permission or Super Admin status to modify system settings."
+                });
+            }
+
+            const body = await readJson(req);
+            const settingsToSave = body.settings || body;
+
+            if (!settingsToSave || typeof settingsToSave !== "object") {
+                return sendJson(res, 400, { success: false, message: "Valid settings object is required." });
+            }
+
+            // Strictly validate each setting before saving
+            const errors = [];
+            const validatedSettings = {};
+
+            if (settingsToSave.platform_name !== undefined) {
+                const name = String(settingsToSave.platform_name).trim();
+                if (!name || name.length < 2 || name.length > 100) {
+                    errors.push("Platform Name must be between 2 and 100 characters.");
+                } else {
+                    validatedSettings.platform_name = name;
+                }
+            }
+
+            if (settingsToSave.support_email !== undefined) {
+                const email = String(settingsToSave.support_email).trim().toLowerCase();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    errors.push("Support Email must be a valid email address.");
+                } else {
+                    validatedSettings.support_email = email;
+                }
+            }
+
+            if (settingsToSave.booking_enabled !== undefined) {
+                const val = String(settingsToSave.booking_enabled).toLowerCase();
+                if (val !== "true" && val !== "false") {
+                    errors.push("Booking Enabled must be boolean true or false.");
+                } else {
+                    validatedSettings.booking_enabled = val;
+                }
+            }
+
+            if (settingsToSave.maintenance_mode !== undefined) {
+                const val = String(settingsToSave.maintenance_mode).toLowerCase();
+                if (val !== "true" && val !== "false") {
+                    errors.push("Maintenance Mode must be boolean true or false.");
+                } else {
+                    validatedSettings.maintenance_mode = val;
+                }
+            }
+
+            if (settingsToSave.driver_registration_enabled !== undefined) {
+                const val = String(settingsToSave.driver_registration_enabled).toLowerCase();
+                if (val !== "true" && val !== "false") {
+                    errors.push("Driver Registration Enabled must be boolean true or false.");
+                } else {
+                    validatedSettings.driver_registration_enabled = val;
+                }
+            }
+
+            if (settingsToSave.max_booking_days_ahead !== undefined) {
+                const days = parseInt(settingsToSave.max_booking_days_ahead, 10);
+                if (isNaN(days) || days < 1 || days > 365) {
+                    errors.push("Maximum booking advance days must be an integer between 1 and 365.");
+                } else {
+                    validatedSettings.max_booking_days_ahead = String(days);
+                }
+            }
+
+            if (settingsToSave.cancellation_window_minutes !== undefined) {
+                const mins = parseInt(settingsToSave.cancellation_window_minutes, 10);
+                if (isNaN(mins) || mins < 0 || mins > 1440) {
+                    errors.push("Cancellation grace period must be an integer between 0 and 1440 minutes.");
+                } else {
+                    validatedSettings.cancellation_window_minutes = String(mins);
+                }
+            }
+
+            if (settingsToSave.default_vehicle_type !== undefined) {
+                const validTypes = ["Sedan", "SUV", "Hatchback", "Auto", "Bike", "Premium"];
+                const type = String(settingsToSave.default_vehicle_type).trim();
+                if (!validTypes.includes(type)) {
+                    errors.push(`Default Vehicle Type must be one of: ${validTypes.join(", ")}.`);
+                } else {
+                    validatedSettings.default_vehicle_type = type;
+                }
+            }
+
+            if (settingsToSave.min_fare_amount !== undefined) {
+                const fare = parseFloat(settingsToSave.min_fare_amount);
+                if (isNaN(fare) || fare < 0 || fare > 10000) {
+                    errors.push("Minimum Fare floor must be a valid number between ₹0 and ₹10,000.");
+                } else {
+                    validatedSettings.min_fare_amount = String(fare.toFixed(2));
+                }
+            }
+
+            if (settingsToSave.surge_multiplier_max !== undefined) {
+                const surge = parseFloat(settingsToSave.surge_multiplier_max);
+                if (isNaN(surge) || surge < 1.0 || surge > 5.0) {
+                    errors.push("Maximum Surge Multiplier must be between 1.0 and 5.0.");
+                } else {
+                    validatedSettings.surge_multiplier_max = String(surge.toFixed(1));
+                }
+            }
+
+            if (errors.length > 0) {
+                return sendJson(res, 400, {
+                    success: false,
+                    message: "Settings validation failed: " + errors.join("; "),
+                    errors: errors
+                });
+            }
+
+            const updatedKeys = Object.keys(validatedSettings);
+            if (updatedKeys.length === 0) {
+                return sendJson(res, 400, { success: false, message: "No valid recognized settings were provided to save." });
+            }
+
+            const updaterId = session ? session.user_id : null;
+            const actorName = session ? session.name : "Administrator";
+
+            for (const key of updatedKeys) {
+                const value = validatedSettings[key];
+                await pool.execute(
+                    `UPDATE system_settings SET setting_value = ?, updated_by = ? WHERE setting_key = ?`,
+                    [value, updaterId, key]
+                );
+            }
+
+            // Record detailed settings changes in system logs
+            const changesDescription = updatedKeys.map(k => `${k}=${validatedSettings[k]}`).join(", ");
+            await logActivity(
+                updaterId,
+                "SETTINGS_UPDATED",
+                `System settings updated by ${actorName}: [${changesDescription}].`,
+                clientIp
+            );
+
+            return sendJson(res, 200, {
+                success: true,
+                message: `Successfully validated and saved ${updatedKeys.length} system setting${updatedKeys.length > 1 ? 's' : ''}.`,
+                updated_keys: updatedKeys,
+                settings: validatedSettings
+            });
+        }
+
 
         // Static files fallback for web browser requests
         if (req.method === "GET" || req.method === "HEAD") {

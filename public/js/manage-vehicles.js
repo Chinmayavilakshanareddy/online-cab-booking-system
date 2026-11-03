@@ -78,8 +78,8 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "✓" : (type === "danger" ? "✕" : "ℹ");
-        toast.innerHTML = `<span>${icon}</span> <div>${escapeHtml(message)}</div>`;
+        const prefix = type === "success" ? "[Success]" : (type === "danger" ? "[Error]" : "[Info]");
+        toast.innerHTML = `<span style="font-weight: bold; margin-right: 6px;">${prefix}</span> <div>${escapeHtml(message)}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -149,8 +149,8 @@
             : `<button type="button" class="btn-table-action btn-unblock btn-status-toggle" data-action="active" title="Set to Active">Activate</button>`;
 
         const maintenanceBtn = s === "under_maintenance"
-            ? `<button type="button" class="btn-table-action btn-unblock btn-status-toggle" data-action="active" title="Mark Maintenance Complete">Done Repaired</button>`
-            : `<button type="button" class="btn-table-action btn-reject btn-status-toggle" data-action="under_maintenance" title="Send to Maintenance">🔧 Service</button>`;
+            ? `<button type="button" class="btn-table-action btn-unblock btn-status-toggle" data-action="active" title="Mark Maintenance Complete">Repaired</button>`
+            : `<button type="button" class="btn-table-action btn-reject btn-status-toggle" data-action="under_maintenance" title="Send to Maintenance">Service</button>`;
 
         tr.innerHTML = `
             <td>
@@ -169,7 +169,7 @@
             <td>
                 <div class="driver-info-cell">
                     <span class="driver-name">${escapeHtml(v.driver_name)}</span>
-                    <span class="driver-sub">📞 ${escapeHtml(v.driver_phone || 'N/A')}</span>
+                    <span class="driver-sub">Phone: ${escapeHtml(v.driver_phone || 'N/A')}</span>
                     <span class="driver-sub">Lic: ${escapeHtml(v.license_no || 'N/A')}</span>
                 </div>
             </td>
@@ -181,7 +181,7 @@
             </td>
             <td class="action-cell" style="text-align: center;">
                 <div class="table-actions" style="justify-content: center; gap: 4px;">
-                    <button type="button" class="btn-table-action btn-edit-vehicle btn-secondary" title="Edit Vehicle Details">✏️ Edit</button>
+                    <button type="button" class="btn-table-action btn-edit-vehicle btn-secondary" title="Edit Vehicle Details">Edit</button>
                     ${quickStatusBtn}
                     ${maintenanceBtn}
                 </div>
@@ -304,7 +304,6 @@
                 el.vehiclesList.innerHTML = `
                     <tr>
                         <td colspan="8" class="empty-state">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🚗</div>
                             <strong>No vehicles found</strong>
                             <p style="margin-top: 4px; color: var(--text-muted); font-size: 12px;">
                                 ${state.search || state.status !== "all" || state.type !== "all"
@@ -334,7 +333,6 @@
             el.vehiclesList.innerHTML = `
                 <tr>
                     <td colspan="8" class="empty-state" style="color: var(--status-danger);">
-                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
                         <strong>Failed to load vehicles</strong>
                         <p style="margin-top: 4px; font-size: 12px; color: var(--text-secondary);">${escapeHtml(err.message)}</p>
                         <button type="button" class="btn-secondary" style="margin-top: 12px;" onclick="window.RideNowVehicles.reload()">Try Again</button>
@@ -346,7 +344,7 @@
             state.isLoading = false;
             if (el.refreshBtn) {
                 el.refreshBtn.disabled = false;
-                el.refreshBtn.innerHTML = `<span>🔄</span> Refresh`;
+                el.refreshBtn.textContent = "Refresh";
             }
         }
     }

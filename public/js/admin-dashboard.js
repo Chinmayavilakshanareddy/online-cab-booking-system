@@ -51,7 +51,7 @@
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = `<span>${type === "success" ? "✓" : "⚠"}</span> <div>${message}</div>`;
+        toast.textContent = message;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -180,7 +180,7 @@
             el.pendingDriversTableBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="empty-state">
-                        ✓ All driver applications have been reviewed. No pending approvals!
+                        All driver applications have been reviewed. No pending approvals.
                     </td>
                 </tr>
             `;
@@ -326,7 +326,7 @@
                         el.pendingDriversTableBody.innerHTML = `
                             <tr>
                                 <td colspan="5" class="empty-state">
-                                    ✓ All driver applications have been reviewed. No pending approvals!
+                                    All driver applications have been reviewed. No pending approvals.
                                 </td>
                             </tr>
                         `;
@@ -371,17 +371,59 @@
         el.refreshBtn.addEventListener("click", fetchDashboardStats);
     }
 
-    // User authentication / info loader
+    // User authentication / info loader & permission restrictions
     function checkUserSession() {
         const storedUser = localStorage.getItem("ridenow_user");
         if (storedUser) {
             try {
                 const u = JSON.parse(storedUser);
                 if (el.adminUserName) el.adminUserName.textContent = u.name || "Admin User";
+
+                // Enforce permissions restriction on sidebar and UI if role is standard admin
+                if (u.role === "admin" && Array.isArray(u.permissions)) {
+                    applyPermissionsRestriction(u.permissions);
+                }
             } catch (e) {
                 // Ignore parse error
             }
         }
+    }
+
+    function applyPermissionsRestriction(permissions) {
+        const permMap = {
+            "manage_passengers": 'a[href*="manage-passengers"]',
+            "manage_drivers": 'a[href*="manage-drivers"]',
+            "manage_vehicles": 'a[href*="manage-vehicles"]',
+            "manage_trips": 'a[href*="manage-trips"]',
+            "manage_fares": 'a[href*="fare-rules"]',
+            "view_reports": 'a[href*="reports"]',
+            "system_settings": 'a[href*="system-settings"], a[href*="system-logs"]'
+        };
+
+        // For super admin only governance links (Super Dashboard, Manage Admins, Permissions)
+        const governanceLinks = document.querySelectorAll('a[href*="superadmin-dashboard"], a[href*="manage-admins"], a[href*="permissions"]');
+        governanceLinks.forEach(link => {
+            link.style.opacity = "0.45";
+            link.title = "Restricted to Super Administrators";
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                showToast("Access Restricted: Root Super Administrator privileges required.", "warning");
+            });
+        });
+
+        Object.entries(permMap).forEach(([perm, selector]) => {
+            if (!permissions.includes(perm)) {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(elem => {
+                    elem.style.opacity = "0.45";
+                    elem.title = "Permission not granted: " + perm;
+                    elem.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        showToast(`Access Restricted: Your account does not have the '${perm}' permission.`, "warning");
+                    });
+                });
+            }
+        });
     }
 
     // Logout

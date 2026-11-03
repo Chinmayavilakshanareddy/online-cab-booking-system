@@ -12,7 +12,7 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role">Admin</span>
             </a>
         </div>
@@ -20,34 +20,44 @@
         <nav class="sidebar-nav">
             <div class="nav-section-title">Core Management</div>
             <a href="admin-dashboard.html" class="nav-item">
-                <span class="icon">📊</span>
                 <span>Dashboard</span>
             </a>
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
             </a>
             <a href="manage-vehicles.html" class="nav-item active">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
             <a href="manage-trips.html" class="nav-item">
-                <span class="icon">🗺️</span>
                 <span>Trips &amp; Bookings</span>
             </a>
 
             <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item">
-                <span class="icon">📈</span>
                 <span>Reports &amp; Analytics</span>
+            </a>
+
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
         </nav>
 
@@ -58,7 +68,7 @@
                     <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
             </div>
         </div>
     </aside>
@@ -68,16 +78,12 @@
         <header class="admin-topbar">
             <div class="page-headline">
                 <h1>Vehicle Fleet Management</h1>
-                <p>Register vehicles, edit details, and control fleet status (active / inactive / maintenance).</p>
+                <p>Register vehicles, edit details, and control fleet status (active, inactive, or maintenance).</p>
             </div>
             <div class="topbar-actions">
-                <button class="btn-secondary" id="refreshBtn" title="Refresh">
-                    <span>🔄</span> Refresh
-                </button>
-                <button class="btn-primary" id="addVehicleBtn" title="Register a new vehicle">
-                    <span>＋</span> Add Vehicle
-                </button>
-                <a href="admin-dashboard.html" class="btn-secondary">← Dashboard</a>
+                <button class="btn-secondary" id="refreshBtn" title="Refresh records">Refresh</button>
+                <button class="btn-primary" id="addVehicleBtn" title="Register a new vehicle">Add Vehicle</button>
+                <a href="admin-dashboard.html" class="btn-secondary">Back to Dashboard</a>
             </div>
         </header>
 
@@ -88,7 +94,6 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Vehicles</span>
-                        <div class="stat-icon-wrap icon-primary">🚗</div>
                     </div>
                     <div class="stat-value" id="statTotalVehicles">-</div>
                     <div class="stat-meta">Registered in fleet</div>
@@ -96,26 +101,23 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Active</span>
-                        <div class="stat-icon-wrap icon-success">✅</div>
                     </div>
                     <div class="stat-value" id="statActiveVehicles">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-success">Available</span> Ready to accept trips</div>
+                    <div class="stat-meta">Ready to accept trips</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Inactive</span>
-                        <div class="stat-icon-wrap icon-warning">⏸️</div>
                     </div>
                     <div class="stat-value" id="statInactiveVehicles">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-warning">Off-duty</span> Not accepting trips</div>
+                    <div class="stat-meta">Off-duty or unassigned</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Under Maintenance</span>
-                        <div class="stat-icon-wrap icon-danger">🔧</div>
                     </div>
                     <div class="stat-value" id="statMaintenanceVehicles">-</div>
-                    <div class="stat-meta"><span class="badge-pill badge-danger">In Service</span> Undergoing repairs</div>
+                    <div class="stat-meta">Undergoing servicing</div>
                 </div>
             </section>
 
@@ -131,17 +133,14 @@
                 <!-- Toolbar -->
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input
-                                type="search"
-                                id="searchInput"
-                                class="input-control"
-                                placeholder="Search by plate, model, driver name…"
-                                aria-label="Search vehicles"
-                                autocomplete="off"
-                            >
-                        </div>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            class="input-control"
+                            placeholder="Search by plate, model, driver..."
+                            aria-label="Search vehicles"
+                            autocomplete="off"
+                        >
                         <select id="statusFilter" class="select-control" aria-label="Filter by vehicle status">
                             <option value="all">All Statuses</option>
                             <option value="active">Active</option>
@@ -157,9 +156,7 @@
                             <option value="Bike">Bike</option>
                             <option value="Premium">Premium</option>
                         </select>
-                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">
-                            <span>✕</span> Reset
-                        </button>
+                        <button id="resetFiltersBtn" class="btn-filter-reset" title="Reset filters">Reset</button>
                     </div>
                     <div class="table-toolbar-right">
                         <select id="limitFilter" class="select-control" aria-label="Items per page">
@@ -190,7 +187,7 @@
                             <tbody id="vehiclesList">
                                 <tr>
                                     <td colspan="8" class="empty-state">
-                                        <span class="loading-spinner"></span> Loading vehicles from database…
+                                        Loading vehicles from database...
                                     </td>
                                 </tr>
                             </tbody>
@@ -213,7 +210,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h2 id="modalTitle">Add Vehicle</h2>
-                <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
+                <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">Close</button>
             </div>
             <form id="vehicleForm" novalidate>
                 <input type="hidden" id="editVehicleId">
@@ -227,7 +224,7 @@
                     <div class="form-group">
                         <label for="fVehicleType">Vehicle Type <span class="req">*</span></label>
                         <select id="fVehicleType" class="select-control" required>
-                            <option value="">— Select Type —</option>
+                            <option value="">-- Select Type --</option>
                             <option value="Sedan">Sedan</option>
                             <option value="SUV">SUV</option>
                             <option value="Hatchback">Hatchback</option>
@@ -247,7 +244,7 @@
                     <div class="form-group">
                         <label for="fDriverId">Assign to Driver <span class="req">*</span></label>
                         <select id="fDriverId" class="select-control" required>
-                            <option value="">— Loading drivers… —</option>
+                            <option value="">-- Loading drivers... --</option>
                         </select>
                         <div class="field-hint">Only approved drivers are listed</div>
                     </div>

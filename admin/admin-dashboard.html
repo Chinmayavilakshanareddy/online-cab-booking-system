@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | RideNow Online Cab Booking System</title>
+    <title>Admin Dashboard | RideNow</title>
     <link rel="stylesheet" href="../public/css/admin.css">
 </head>
 <body>
@@ -12,62 +12,53 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role">Admin</span>
             </a>
         </div>
 
         <nav class="sidebar-nav">
             <div class="nav-section-title">Core Management</div>
-
             <a href="admin-dashboard.html" class="nav-item active">
-                <span class="icon">📊</span>
                 <span>Dashboard</span>
             </a>
-
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
-
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
                 <span class="nav-badge" id="sidebarPendingBadge" style="display: none;">0</span>
             </a>
-
             <a href="manage-vehicles.html" class="nav-item">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
-
             <a href="manage-trips.html" class="nav-item">
-                <span class="icon">🗺️</span>
-                <span>Trips & Bookings</span>
+                <span>Trips &amp; Bookings</span>
             </a>
 
-            <div class="nav-section-title">Pricing & Insights</div>
-
+            <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
-
             <a href="reports.html" class="nav-item">
-                <span class="icon">📈</span>
-                <span>Reports & Analytics</span>
+                <span>Reports &amp; Analytics</span>
             </a>
 
             <div class="nav-section-title">System Governance</div>
-
             <a href="superadmin-dashboard.html" class="nav-item">
-                <span class="icon">👑</span>
                 <span>Super Dashboard</span>
             </a>
-
             <a href="manage-admins.html" class="nav-item">
-                <span class="icon">🛡️</span>
                 <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
         </nav>
 
@@ -78,14 +69,13 @@
                     <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <button class="logout-btn" id="logoutBtn" title="Log out">🚪</button>
+                <button class="logout-btn" id="logoutBtn" title="Log out">Logout</button>
             </div>
         </div>
     </aside>
 
     <!-- ================= MAIN CONTENT WRAPPER ================= -->
     <main class="admin-main">
-        <!-- Top App Bar -->
         <header class="admin-topbar">
             <div class="page-headline">
                 <h1>Admin Operations Dashboard</h1>
@@ -98,34 +88,31 @@
                     <span>Live Operations</span>
                 </div>
                 <button id="refreshBtn" class="btn-secondary">
-                    <span>⟳</span> Refresh
+                    Refresh
                 </button>
             </div>
         </header>
 
-        <!-- Main Dashboard View Container -->
         <div class="admin-container">
 
             <!-- 1. KEY METRIC STAT CARDS -->
             <section class="stats-grid">
                 <!-- Passengers Card -->
-                <article class="stat-card highlight" style="cursor: pointer;" onclick="window.location.href='manage-passengers.html'" title="Click to manage passengers">
+                <article class="stat-card highlight" style="cursor: pointer;" onclick="window.location.href='manage-passengers.html'">
                     <div class="stat-header">
                         <span class="stat-title">Total Passengers</span>
-                        <div class="stat-icon">👥</div>
                     </div>
                     <div class="stat-value" id="statPassengers">0</div>
                     <div class="stat-meta">
                         <span class="badge-pill badge-success">Active</span>
-                        <span>Manage Passengers →</span>
+                        <span>View passengers</span>
                     </div>
                 </article>
 
                 <!-- Drivers Card -->
-                <article class="stat-card" style="cursor: pointer;" onclick="window.location.href='manage-drivers.html'" title="Click to manage drivers">
+                <article class="stat-card" style="cursor: pointer;" onclick="window.location.href='manage-drivers.html'">
                     <div class="stat-header">
                         <span class="stat-title">Registered Drivers</span>
-                        <div class="stat-icon">🚖</div>
                     </div>
                     <div class="stat-value" id="statDrivers">0</div>
                     <div class="stat-meta" id="statDriversApprovedMeta">
@@ -137,20 +124,18 @@
                 <article class="stat-card alert-card">
                     <div class="stat-header">
                         <span class="stat-title">Pending Driver Approvals</span>
-                        <div class="stat-icon">⏳</div>
                     </div>
                     <div class="stat-value" id="statPendingCount">0</div>
                     <div class="stat-meta">
                         <span class="badge-pill badge-warning" id="statPendingBadge">0 Pending</span>
-                        <span>Requires verification</span>
+                        <span>Requires review</span>
                     </div>
                 </article>
 
                 <!-- Trips & Bookings Card -->
                 <article class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-title">Total Bookings & Trips</span>
-                        <div class="stat-icon">🗺️</div>
+                        <span class="stat-title">Total Bookings &amp; Trips</span>
                     </div>
                     <div class="stat-value" id="statTotalTrips">0</div>
                     <div class="stat-meta">
@@ -162,11 +147,10 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Active Fleet (Vehicles)</span>
-                        <div class="stat-icon">🚗</div>
                     </div>
                     <div class="stat-value" id="statTotalVehicles">0 / 0</div>
                     <div class="stat-meta">
-                        <span>Active / Registered Vehicles</span>
+                        <span>Active / Registered</span>
                     </div>
                 </article>
 
@@ -174,9 +158,8 @@
                 <article class="stat-card highlight">
                     <div class="stat-header">
                         <span class="stat-title">Total Gross Revenue</span>
-                        <div class="stat-icon">💰</div>
                     </div>
-                    <div class="stat-value" id="statTotalRevenue">₹0.00</div>
+                    <div class="stat-value" id="statTotalRevenue">Rs. 0.00</div>
                     <div class="stat-meta">
                         <span class="badge-pill badge-success">Completed</span>
                         <span>Processed payments</span>
@@ -192,7 +175,7 @@
                     <div class="card-header">
                         <div class="card-title-group">
                             <h2>Pending Driver Approvals</h2>
-                            <p>Verify driver licenses, vehicle details, and activate eligible partners.</p>
+                            <p>Verify driver licenses, vehicle details, and activate eligible accounts.</p>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -210,7 +193,7 @@
                                 <tbody id="pendingDriversTableBody">
                                     <tr>
                                         <td colspan="5" class="empty-state">
-                                            <span class="loading-spinner"></span> Loading pending driver applications...
+                                            Loading pending driver applications...
                                         </td>
                                     </tr>
                                 </tbody>
@@ -223,8 +206,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title-group">
-                            <h2>Trip & Booking Breakdown</h2>
-                            <p>Live status distribution of cab rides.</p>
+                            <h2>Trip &amp; Booking Breakdown</h2>
+                            <p>Status distribution of cab rides.</p>
                         </div>
                     </div>
                     <div class="card-body trips-summary-card">
@@ -262,7 +245,7 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; font-size: 13px;">
+                        <div style="margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; font-size: 13px;">
                             <span>Active Trips: <strong id="statActiveTrips">0</strong></span>
                             <span>Completed: <strong id="statCompletedTrips">0</strong></span>
                             <span>Cancelled: <strong id="statCancelledTrips">0</strong></span>
@@ -280,11 +263,11 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title-group">
-                            <h2>Recent Trips & Bookings</h2>
+                            <h2>Recent Trips &amp; Bookings</h2>
                             <p>Latest passenger bookings across active service areas.</p>
                         </div>
-                        <a href="manage-trips.html" class="btn-secondary" style="font-size: 12px; padding: 6px 12px;">
-                            View All Trips →
+                        <a href="manage-trips.html" class="btn-secondary" style="font-size: 12px; padding: 4px 10px;">
+                            View All Trips
                         </a>
                     </div>
                     <div class="card-body p-0">
@@ -292,7 +275,7 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Trip #</th>
+                                        <th>Trip ID</th>
                                         <th>Passenger / Driver</th>
                                         <th>Route</th>
                                         <th>Fare</th>
@@ -303,7 +286,7 @@
                                 <tbody id="recentTripsTableBody">
                                     <tr>
                                         <td colspan="6" class="empty-state">
-                                            <span class="loading-spinner"></span> Loading recent trips...
+                                            Loading recent trips...
                                         </td>
                                     </tr>
                                 </tbody>
@@ -317,7 +300,7 @@
                     <div class="card-header">
                         <div class="card-title-group">
                             <h2>Recent Activity Logs</h2>
-                            <p>Real-time audit log of admin and user actions.</p>
+                            <p>Audit log of system and administrative events.</p>
                         </div>
                     </div>
                     <div class="card-body">
@@ -337,4 +320,3 @@
     <script src="../public/js/admin-dashboard.js"></script>
 </body>
 </html>
-

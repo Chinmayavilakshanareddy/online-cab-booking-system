@@ -12,7 +12,7 @@
     <aside class="admin-sidebar">
         <div class="sidebar-header">
             <a href="admin-dashboard.html" class="sidebar-logo">
-                RideNow<span>.</span>
+                RideNow
                 <span class="badge-role">Admin</span>
             </a>
         </div>
@@ -20,34 +20,44 @@
         <nav class="sidebar-nav">
             <div class="nav-section-title">Core Management</div>
             <a href="admin-dashboard.html" class="nav-item">
-                <span class="icon">📊</span>
                 <span>Dashboard</span>
             </a>
             <a href="manage-passengers.html" class="nav-item">
-                <span class="icon">👥</span>
                 <span>Passengers</span>
             </a>
             <a href="manage-drivers.html" class="nav-item">
-                <span class="icon">🚖</span>
                 <span>Drivers</span>
             </a>
             <a href="manage-vehicles.html" class="nav-item">
-                <span class="icon">🚗</span>
                 <span>Vehicles</span>
             </a>
             <a href="manage-trips.html" class="nav-item">
-                <span class="icon">🗺️</span>
                 <span>Trips &amp; Bookings</span>
             </a>
 
             <div class="nav-section-title">Pricing &amp; Insights</div>
             <a href="fare-rules.html" class="nav-item">
-                <span class="icon">💳</span>
                 <span>Fare Rules</span>
             </a>
             <a href="reports.html" class="nav-item active">
-                <span class="icon">📈</span>
                 <span>Reports &amp; Analytics</span>
+            </a>
+
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
             </a>
         </nav>
 
@@ -58,7 +68,7 @@
                     <div class="user-name" id="adminUserName">Arthur Dent (Admin)</div>
                     <div class="user-role-label">System Administrator</div>
                 </div>
-                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">🚪</a>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
             </div>
         </div>
     </aside>
@@ -71,9 +81,10 @@
                 <p>Real-time analytics computed directly from database trips, passenger activity, and driver performance.</p>
             </div>
             <div class="topbar-actions">
-                <button type="button" class="btn-export" id="exportDriversBtn">📥 Export Drivers (CSV)</button>
-                <button type="button" class="btn-export" id="exportPassengersBtn">📥 Export Passengers (CSV)</button>
-                <button type="button" class="btn-secondary" id="printReportBtn" title="Print or save as PDF">🖨️ Print / PDF</button>
+                <button type="button" class="btn-export" id="exportDriversBtn">Export Drivers (CSV)</button>
+                <button type="button" class="btn-export" id="exportPassengersBtn">Export Passengers (CSV)</button>
+                <button type="button" class="btn-secondary" id="printReportBtn" title="Print or save as PDF">Print / PDF</button>
+                <a href="admin-dashboard.html" class="btn-secondary">Back to Dashboard</a>
             </div>
         </header>
 
@@ -83,7 +94,7 @@
             <div class="reports-filter-card">
                 <div class="reports-filter-header">
                     <div class="reports-filter-title">
-                        <span>📅</span> Filter Analytics &amp; Reports by Date Range
+                        Filter Analytics &amp; Reports by Date Range
                     </div>
                     <div class="preset-buttons-group">
                         <button type="button" class="btn-preset active" data-preset="all">All Time</button>
@@ -118,7 +129,6 @@
                 <article class="stat-card highlight">
                     <div class="stat-header">
                         <span class="stat-title">Gross Revenue (Database)</span>
-                        <div class="stat-icon">💰</div>
                     </div>
                     <div class="stat-value" id="statGrossRevenue">₹0.00</div>
                     <div class="stat-meta">
@@ -130,7 +140,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Completed Trips</span>
-                        <div class="stat-icon">✅</div>
                     </div>
                     <div class="stat-value" id="statCompletedTrips">0</div>
                     <div class="stat-meta">
@@ -142,7 +151,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Cancelled Trips</span>
-                        <div class="stat-icon">❌</div>
                     </div>
                     <div class="stat-value" id="statCancelledTrips">0</div>
                     <div class="stat-meta">
@@ -154,7 +162,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Passengers</span>
-                        <div class="stat-icon">👥</div>
                     </div>
                     <div class="stat-value" id="statTotalPassengers">0</div>
                     <div class="stat-meta">
@@ -166,7 +173,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Drivers</span>
-                        <div class="stat-icon">🚖</div>
                     </div>
                     <div class="stat-value" id="statTotalDrivers">0</div>
                     <div class="stat-meta">
@@ -178,7 +184,6 @@
                 <article class="stat-card">
                     <div class="stat-header">
                         <span class="stat-title">Total Distance Covered</span>
-                        <div class="stat-icon">🗺️</div>
                     </div>
                     <div class="stat-value" id="statTotalDistance">0.0 km</div>
                     <div class="stat-meta">
@@ -192,7 +197,7 @@
                 <!-- Vehicle Distribution -->
                 <div class="breakdown-card">
                     <div class="breakdown-card-title">
-                        <span>🚗 Revenue &amp; Trips by Vehicle Category</span>
+                        <span>Revenue &amp; Trips by Vehicle Category</span>
                         <span class="badge-pill badge-info" id="vehicleCountBadge">Categories</span>
                     </div>
                     <div id="vehicleBreakdownContainer">
@@ -203,7 +208,7 @@
                 <!-- Payment Method Distribution -->
                 <div class="breakdown-card">
                     <div class="breakdown-card-title">
-                        <span>💳 Revenue by Payment Method</span>
+                        <span>Revenue by Payment Method</span>
                         <span class="badge-pill badge-success" id="paymentCountBadge">Channels</span>
                     </div>
                     <div id="paymentBreakdownContainer">
@@ -219,15 +224,12 @@
                         <h2>Driver Performance &amp; Revenue Generation Report</h2>
                         <p>Aggregated records of rides fulfilled, cancellations, total distance, revenue generated, and ratings.</p>
                     </div>
-                    <button type="button" class="btn-export" id="exportDriversBtnTable">📥 Download CSV</button>
+                    <button type="button" class="btn-export" id="exportDriversBtnTable">Download CSV</button>
                 </div>
 
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="search" id="driverSearchInput" placeholder="Filter driver name, phone, license..." autocomplete="off">
-                        </div>
+                        <input type="search" id="driverSearchInput" class="input-control" placeholder="Filter driver name, phone, license..." autocomplete="off">
                     </div>
                     <div class="table-toolbar-right">
                         <span class="results-count" id="driverReportCount">Loading driver report...</span>
@@ -251,7 +253,7 @@
                             </thead>
                             <tbody id="driverReportTableBody">
                                 <tr>
-                                    <td colspan="8" class="empty-state-cell">Loading driver performance records...</td>
+                                    <td colspan="8" class="empty-state">Loading driver performance records...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -266,15 +268,12 @@
                         <h2>Passenger Activity &amp; Expenditure Report</h2>
                         <p>Summary of bookings initiated, fulfillment rate, total passenger spend, and registration history.</p>
                     </div>
-                    <button type="button" class="btn-export" id="exportPassengersBtnTable">📥 Download CSV</button>
+                    <button type="button" class="btn-export" id="exportPassengersBtnTable">Download CSV</button>
                 </div>
 
                 <div class="table-toolbar">
                     <div class="table-toolbar-left">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="search" id="passengerSearchInput" placeholder="Filter passenger name, phone, email..." autocomplete="off">
-                        </div>
+                        <input type="search" id="passengerSearchInput" class="input-control" placeholder="Filter passenger name, phone, email..." autocomplete="off">
                     </div>
                     <div class="table-toolbar-right">
                         <span class="results-count" id="passengerReportCount">Loading passenger report...</span>
@@ -298,7 +297,7 @@
                             </thead>
                             <tbody id="passengerReportTableBody">
                                 <tr>
-                                    <td colspan="8" class="empty-state-cell">Loading passenger activity records...</td>
+                                    <td colspan="8" class="empty-state">Loading passenger activity records...</td>
                                 </tr>
                             </tbody>
                         </table>

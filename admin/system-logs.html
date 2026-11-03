@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Activity Logs | RideNow Governance</title>
+    <link rel="stylesheet" href="../public/css/admin.css">
+</head>
+<body>
+
+    <!-- ================= SIDEBAR NAVIGATION ================= -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="superadmin-dashboard.html" class="sidebar-logo">
+                RideNow
+                <span class="badge-role badge-role-super">Super Admin</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">System Governance</div>
+            <a href="superadmin-dashboard.html" class="nav-item">
+                <span>Super Dashboard</span>
+            </a>
+            <a href="manage-admins.html" class="nav-item">
+                <span>Manage Admins</span>
+            </a>
+            <a href="permissions.html" class="nav-item">
+                <span>Permissions</span>
+            </a>
+            <a href="system-logs.html" class="nav-item active">
+                <span>System Logs</span>
+            </a>
+            <a href="system-settings.html" class="nav-item">
+                <span>System Settings</span>
+            </a>
+
+            <div class="nav-section-title">Core Operations</div>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span>Admin Dashboard</span>
+            </a>
+            <a href="manage-passengers.html" class="nav-item">
+                <span>Passengers</span>
+            </a>
+            <a href="manage-drivers.html" class="nav-item">
+                <span>Drivers</span>
+            </a>
+            <a href="manage-vehicles.html" class="nav-item">
+                <span>Vehicles</span>
+            </a>
+            <a href="manage-trips.html" class="nav-item">
+                <span>Trips &amp; Bookings</span>
+            </a>
+
+            <div class="nav-section-title">Pricing &amp; Insights</div>
+            <a href="fare-rules.html" class="nav-item">
+                <span>Fare Rules</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span>Reports &amp; Analytics</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <div class="user-avatar" id="adminUserAvatar" style="background: #1e3a8a;">SL</div>
+                <div class="user-details">
+                    <div class="user-name" id="adminUserName">Administrator</div>
+                    <div class="user-role-label">Audit &amp; Compliance</div>
+                </div>
+                <a href="../customer/login.html" class="logout-btn" id="logoutBtn" title="Log out">Logout</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div class="page-headline">
+                <h1>System Activity &amp; Audit Logs</h1>
+                <p>Track all administrative actions, driver onboarding approvals, fare rule modifications, and critical system events.</p>
+            </div>
+            <div class="topbar-actions">
+                <button type="button" class="btn-secondary" id="exportCsvBtn" title="Export current logs as CSV">Export CSV</button>
+                <button type="button" class="btn-secondary" id="refreshBtn" title="Refresh logs">Refresh</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+
+            <!-- ================= KPI STRIP ================= -->
+            <div class="stats-grid">
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Audit Logs</span>
+                    </div>
+                    <div class="stat-value" id="kpiTotalLogs">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-info">Historical Record</span>
+                        <span>Immutable audit trail</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Today's Activities</span>
+                    </div>
+                    <div class="stat-value" id="kpiTodayCount">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success" id="kpiTodayMeta">Active Day</span>
+                        <span>Logged in last 24h</span>
+                    </div>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Actors</span>
+                    </div>
+                    <div class="stat-value" id="kpiUniqueActors">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-admin">Staff &amp; Users</span>
+                        <span>Recorded performing tasks</span>
+                    </div>
+                </article>
+
+                <article class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-title">Latest Recorded Activity</span>
+                    </div>
+                    <div class="stat-value" id="kpiLatestActivity" style="font-size: 16px; font-weight: 700; color: #166534; line-height: 1.3;">-</div>
+                    <div class="stat-meta">
+                        <span class="badge-pill badge-success">Live Auditing</span>
+                        <span>Real-time ingestion</span>
+                    </div>
+                </article>
+            </div>
+
+            <!-- ================= FILTER TOOLBAR CARD ================= -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Audit Event Stream</h2>
+                        <p>Filter by administrator, action type, date range, or keywords.</p>
+                    </div>
+                </div>
+
+                <!-- Multi-criteria Filter Toolbar -->
+                <div class="table-toolbar" style="flex-wrap: wrap; gap: 14px; padding: 16px 20px;">
+                    <div class="table-toolbar-left" style="flex-wrap: wrap; gap: 12px; width: 100%;">
+                        <input type="search" id="searchInput" class="input-control" placeholder="Search by description, action, user, or IP..." autocomplete="off" style="min-width: 240px; flex: 1;">
+
+                        <div class="filter-group">
+                            <label for="actionFilter">Action Type:</label>
+                            <select id="actionFilter" class="select-control" style="min-width: 180px;">
+                                <option value="all">All Actions</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="adminFilter">Administrator / Actor:</label>
+                            <select id="adminFilter" class="select-control" style="min-width: 180px;">
+                                <option value="all">All Actors</option>
+                                <option value="system">System Automated</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="dateFrom">Date From:</label>
+                            <input type="date" id="dateFrom" class="input-control" style="min-width: 140px;">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="dateTo">Date To:</label>
+                            <input type="date" id="dateTo" class="input-control" style="min-width: 140px;">
+                        </div>
+
+                        <div style="display: flex; align-items: flex-end; gap: 8px;">
+                            <button type="button" class="btn-primary" id="applyFiltersBtn" style="padding: 8px 14px; font-size: 13px;">Apply</button>
+                            <button type="button" class="btn-filter-reset" id="resetFiltersBtn" style="padding: 8px 12px;">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 8px 20px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background: #fafafa;">
+                    <span class="results-count" id="logResultsCount">Loading audit logs...</span>
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+                        <label for="limitSelect">Per Page:</label>
+                        <select id="limitSelect" class="select-control" style="padding: 4px 8px;">
+                            <option value="15">15</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Body -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Log ID</th>
+                                    <th style="width: 170px;">Timestamp</th>
+                                    <th style="width: 200px;">Actor / Origin</th>
+                                    <th style="width: 180px;">Action Category</th>
+                                    <th>Audit Event Description</th>
+                                    <th style="width: 130px; text-align: right;">IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        Loading activity logs from database...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="card-footer" style="padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color);">
+                    <div style="font-size: 13px; color: var(--text-secondary);" id="paginationInfo">
+                        Showing page 1 of 1
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn-secondary" id="prevPageBtn" disabled style="padding: 6px 14px; font-size: 13px;">Previous</button>
+                        <button type="button" class="btn-secondary" id="nextPageBtn" disabled style="padding: 6px 14px; font-size: 13px;">Next</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toastContainer" aria-live="polite"></div>
+
+    <script src="../public/js/system-logs.js"></script>
+</body>
+</html>
